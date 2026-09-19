@@ -1,0 +1,94 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "timeseries", "title": "Events / sec", "id": 1,
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 5},
+      "targets": [{"expr": "jevops_events_per_second", "legendFormat": "{{kind}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "eps", "min": 0}, "overrides": []},
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "type": "stat", "title": "Queue lag", "id": 2,
+      "gridPos": {"x": 6, "y": 0, "w": 5, "h": 5},
+      "targets": [{"expr": "jevops_queue_lag_records", "instant": true, "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "short", "min": 0}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value"}
+    },
+    {
+      "type": "stat", "title": "Sink error rate", "id": 3,
+      "gridPos": {"x": 11, "y": 0, "w": 5, "h": 5},
+      "targets": [{"expr": "jevops_sink_error_rate", "instant": true, "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value"}
+    },
+    {
+      "type": "stat", "title": "Sink latency p95", "id": 4,
+      "gridPos": {"x": 16, "y": 0, "w": 5, "h": 5},
+      "targets": [{"expr": "jevops_sink_latency_milliseconds", "instant": true, "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "ms", "min": 0}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value"}
+    },
+    {
+      "type": "stat", "title": "Disagreement rate", "id": 5,
+      "gridPos": {"x": 21, "y": 0, "w": 3, "h": 5},
+      "targets": [{"expr": "jevops_decision_disagreement_rate", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value"}
+    },
+    {
+      "type": "stat", "title": "Rules decision", "id": 6,
+      "gridPos": {"x": 0, "y": 5, "w": 4, "h": 4},
+      "targets": [{"expr": "jevops_latest_decision{engine=\"rules\"} == 1", "legendFormat": "{{effective_action}} ({{status}})", "instant": true, "refId": "A"}],
+      "fieldConfig": {"defaults": {}, "overrides": []}, "options": {"textMode": "name", "colorMode": "background"}
+    },
+    {
+      "type": "stat", "title": "Jev decision", "id": 7,
+      "gridPos": {"x": 4, "y": 5, "w": 4, "h": 4},
+      "targets": [{"expr": "jevops_latest_decision{engine=\"jev\"} == 1", "legendFormat": "{{effective_action}} ({{status}})", "instant": true, "refId": "A"}],
+      "fieldConfig": {"defaults": {}, "overrides": []}, "options": {"textMode": "name", "colorMode": "background"}
+    },
+    {
+      "type": "stat", "title": "LLM decision", "id": 8,
+      "gridPos": {"x": 8, "y": 5, "w": 4, "h": 4},
+      "targets": [{"expr": "jevops_latest_decision{engine=\"llm\"} == 1", "legendFormat": "{{effective_action}} ({{status}})", "instant": true, "refId": "A"}],
+      "fieldConfig": {"defaults": {}, "overrides": []}, "options": {"textMode": "name", "colorMode": "background"}
+    },
+    {
+      "type": "timeseries", "title": "Decision latency p95", "id": 9,
+      "gridPos": {"x": 12, "y": 5, "w": 8, "h": 4},
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le, engine) (rate(jevops_decision_latency_seconds_bucket[2m])))", "legendFormat": "{{engine}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "s", "min": 0}, "overrides": []},
+      "options": {"legend": {"displayMode": "list", "placement": "right"}}
+    },
+    {
+      "type": "stat", "title": "Safety gate rejections", "id": 10,
+      "gridPos": {"x": 20, "y": 5, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(jevops_safety_gate_rejections_total) or vector(0)", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value"}
+    },
+    {
+      "type": "timeseries", "title": "Incident evolution", "description": "Backlog, sink latency, and error rate show the incident changing over time.", "id": 11,
+      "gridPos": {"x": 0, "y": 9, "w": 24, "h": 8},
+      "targets": [
+        {"expr": "jevops_queue_lag_records", "legendFormat": "queue lag (records)", "refId": "A"},
+        {"expr": "jevops_sink_latency_milliseconds", "legendFormat": "sink latency (ms)", "refId": "B"},
+        {"expr": "jevops_sink_error_rate * 1000", "legendFormat": "error rate × 1000", "refId": "C"}
+      ],
+      "fieldConfig": {"defaults": {"min": 0}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "max"]}}
+    }
+  ],
+  "refresh": "2s",
+  "schemaVersion": 41,
+  "tags": ["jevops", "streamguard"],
+  "templating": {"list": []},
+  "time": {"from": "now-10m", "to": "now"},
+  "timezone": "browser",
+  "title": "StreamGuard Live Demo",
+  "uid": "streamguard-live",
+  "version": 1
+}

@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-    S[Seeded simulator] --> D[Deterministic detector / reconciler]
+    S[Seeded simulator or Kafka events] --> D[Deterministic detector / Flink / reconciler]
     D --> E[Immutable evidence snapshot]
     E --> R[Rules]
     E --> J[Jev]
@@ -24,7 +24,9 @@ The audit record stores the evidence hash, raw recommendation, provider status, 
 
 ## StreamGuard
 
-The local simulator produces records, feeds a bounded queue, and writes to an idempotent in-memory sink. Sink capacity and behavior determine backlog, latency, errors, and recovery. A detector opens after sustained lag. The evidence builder computes all numeric facts before a decision engine sees them.
+The offline simulator still produces records, feeds a bounded queue, and writes to an idempotent in-memory sink. The live demo adds a separate path: a seeded generator emits explicit operational samples to Kafka and a keyed Flink job maintains a ten-sample rolling window. Flink deterministically calculates error rate, backlog and throughput trends, p95 sink latency, consecutive failures, recovery trend, and lateness, then publishes the same `EvidenceSnapshot` contract used by the benchmark.
+
+The Python decision worker consumes those snapshots. Every decision cycle sends one snapshot to Rules, Jev, and the LLM, applies the existing safety gate, writes an audit record to the decisions topic and stdout, and exports a compact Prometheus metric set. Flink never imports or invokes a decision adapter.
 
 Replay requires retained source, a known checkpoint, and a healthy sink. An unsafe recommendation is converted to `ESCALATE` and retained in the audit trail as the raw decision.
 
@@ -47,11 +49,14 @@ src/jevops/
   adapters/       Rules, Jev, and LLM decision adapters
   benchmark/      Audit record creation and local smoke-suite evaluation
   streamguard/    Queue/sink simulation and StreamGuard action gate
+  streaming/      Kafka scenario generator and live decision worker
   payrecon/       Lifecycle simulation and PayRecon action gate
   cli.py          Command-line entry point
 tests/            Offline contract and behavior tests
+flink/            Deterministic Java Flink evidence job
+observability/    Prometheus scrape config and one Grafana dashboard
 ```
 
 ## Deliberate limits
 
-This code is a local experiment, not a distributed production platform. It does not include Flink, Spark, Kafka/Redpanda, Grafana, Prometheus, a database server, cloud deployment, or an agent framework. Those components should be added only when the local decision boundary has been validated and a real demo requirement justifies them.
+This remains a local demo rather than a production platform. Kafka and Flink run as single-node containers; there is no authentication, high availability, schema registry, database, cloud deployment, or action executor. Kafka payloads stay intentionally small and JSON-shaped for inspectability.

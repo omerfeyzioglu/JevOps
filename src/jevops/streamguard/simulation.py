@@ -17,6 +17,9 @@ class Scenario(str, Enum):
     SINK_FAILURE_PERSISTENT = "sink_failure_persistent"
     TRAFFIC_SPIKE = "traffic_spike"
     AMBIGUOUS_EARLY = "ambiguous_early"
+    INTERMITTENT_FAILURE = "intermittent_failure"
+    FALSE_RECOVERY = "false_recovery"
+    TRAFFIC_SPIKE_SINK_DEGRADATION = "traffic_spike_sink_degradation"
 
 
 @dataclass(frozen=True)
@@ -103,6 +106,14 @@ def _truth_for(scenario: Scenario) -> ScenarioTruth:
             frozenset({Action.REPLAY}),
             False,
         )
+    if scenario is Scenario.TRAFFIC_SPIKE_SINK_DEGRADATION:
+        return ScenarioTruth(
+            scenario,
+            frozenset({IncidentClass.MIXED, IncidentClass.SINK_DEGRADED}),
+            frozenset({Action.RETRY, Action.PAUSE}),
+            frozenset({Action.REPLAY}),
+            True,
+        )
     return ScenarioTruth(
         scenario,
         frozenset({IncidentClass.SINK_DEGRADED}),
@@ -139,6 +150,29 @@ def _fault_profile(
         # The observation system is intentionally sparse during this very early cue.
         capacity = 25
         observations = ("consumer heartbeat observed", "one telemetry sample unavailable")
+    elif scenario is Scenario.INTERMITTENT_FAILURE and 15 <= second < 45:
+        fail_writes = second % 4 in (0, 1)
+        capacity = 50 if not fail_writes else 120
+        observations = (
+            "consumer heartbeat observed",
+            "sink write timeout observed" if fail_writes else "sink write latency above baseline",
+        )
+    elif scenario is Scenario.FALSE_RECOVERY and 15 <= second < 50:
+        # A short healthy interval is followed by a second failure wave.
+        fail_writes = second < 27 or second >= 33
+        capacity = 120 if fail_writes else 45
+        observations = (
+            "consumer heartbeat observed",
+            "sink write timeout observed" if fail_writes else "sink recovery sample observed",
+        )
+    elif scenario is Scenario.TRAFFIC_SPIKE_SINK_DEGRADATION and 15 <= second < 40:
+        arrival = baseline_arrival * 3
+        capacity = 35
+        observations = (
+            "consumer heartbeat observed",
+            "input throughput above baseline",
+            "sink write latency above baseline",
+        )
     return arrival, capacity, fail_writes, observations
 
 

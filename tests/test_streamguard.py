@@ -11,6 +11,8 @@ from jevops.benchmark.runner import run_episode_with_adapters, run_smoke_suite
 from jevops.contracts import Action, IncidentClass, ProviderStatus
 from jevops.streamguard.actions import validate_action
 from jevops.streamguard.simulation import LocalSink, Scenario, run_episode
+from jevops.streaming.processor import decide_and_audit, evidence_from_payload
+from jevops.streaming.scenarios import generate_events
 from jevops.payrecon.actions import validate_action as validate_payrecon_action
 from jevops.payrecon.simulation import PayReconScenario, run_episode as run_payrecon_episode
 
@@ -88,6 +90,29 @@ class StreamGuardDecisionTests(unittest.TestCase):
             rows = run_smoke_suite([RulesAdapter(), JevAdapter(), LlmAdapter()])
         self.assertEqual(len(rows), 36)
         self.assertEqual(sum(row["audit"]["decision"]["status"] == "UNAVAILABLE" for row in rows), 24)
+
+
+class StreamGuardLiveTests(unittest.TestCase):
+    def test_live_scenarios_are_seeded_and_do_not_leak_scenario_identity(self) -> None:
+        first = list(generate_events(Scenario.INTERMITTENT_FAILURE, 701, 30, "test-run"))
+        second = list(generate_events(Scenario.INTERMITTENT_FAILURE, 701, 30, "test-run"))
+        normalized_first = [event.as_dict() | {"timestamp": "ignored"} for event in first]
+        normalized_second = [event.as_dict() | {"timestamp": "ignored"} for event in second]
+        self.assertEqual(normalized_first, normalized_second)
+        self.assertNotIn("scenario", json.dumps(normalized_first).lower())
+        self.assertTrue(any(event.sink_errors > 0 for event in first))
+        self.assertTrue(any(event.sink_errors == 0 for event in first[15:]))
+
+    def test_live_processor_preserves_hash_and_safety_gate(self) -> None:
+        evidence = run_episode(Scenario.SINK_FAILURE_PERSISTENT, 301).evidence
+        reconstructed = evidence_from_payload(evidence.model_state())
+        rows = decide_and_audit(
+            reconstructed, [RulesAdapter(), UnsafeReplayFixtureAdapter()]
+        )
+        self.assertEqual({row["evidence_hash"] for row in rows}, {evidence.input_hash})
+        self.assertEqual(
+            rows[1]["audit"]["gate"]["effective_action"], Action.ESCALATE
+        )
 
 
 class PayReconTests(unittest.TestCase):
