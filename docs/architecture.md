@@ -1,100 +1,57 @@
-# Architecture and engineering decisions
+# Architecture
 
-Status: proposed, 2026-09-20. Defaults can be revised during review; no components are implemented.
-
-## Data flow
+## Runtime boundary
 
 ```mermaid
 flowchart LR
-    F[Seeded fault schedule] --> S[Producer and simulated dependencies]
-    S --> T[Local queue first / Redpanda later]
-    T --> D[Consumer / deterministic reconciliation]
-    D --> C[Metrics, anomaly detector, context builder]
-    C --> E[Immutable evidence snapshot]
+    S[Seeded simulator] --> D[Deterministic detector / reconciler]
+    D --> E[Immutable evidence snapshot]
     E --> R[Rules]
     E --> J[Jev]
     E --> L[LLM]
-    R --> A[Decision audit and shared safety gate]
-    J --> A
-    L --> A
-    A --> X[Shadow action / isolated simulator]
-    F --> O[Private truth manifest]
-    O --> B[Offline evaluator]
-    A --> B
-    C --> P[Prometheus]
-    A --> P
-    P --> G[Grafana]
+    R --> G[Safety gate and audit]
+    J --> G
+    L --> G
+    G --> A[Simulated bounded action]
+    S --> T[Private evaluator truth]
+    T --> V[Offline evaluation]
+    G --> V
 ```
 
-The truth manifest is evaluator-only. Simulated dependency observations flow through ordinary instrumentation; the context builder cannot inspect the fault schedule. All three adapters receive one immutable snapshot. Provider calls never run in the event-processing critical path.
+The simulator generates observations; it does not hand a fault label to a decision adapter. Truth, scenario names, seeds, expected actions, and future events remain evaluator-only. Every adapter receives the same JSON-shaped `EvidenceSnapshot` and the same action vocabulary.
 
-## Stack decisions
+The audit record stores the evidence hash, raw recommendation, provider status, elapsed time, and safety-gated effective action. A missing provider key is an `UNAVAILABLE` status, not a substitute decision.
 
-| Decision | Why / boundary |
-| --- | --- |
-| Python 3.12, one package, asyncio where needed | Small shared runtime; supports current Jev SDK. Separate tasks/modules, not a service per function. |
-| Local queue before Redpanda | Proves the decision boundary and oracle quickly; local performance is never presented as Kafka performance. |
-| One Redpanda broker, three partitions per domain topic | Enough to demonstrate lag, replay, and skew; no resilience or production scale claim. Kafka-compatible transport without a separate coordination service. |
-| SQLite, embedded in the app | Atomic event dedupe, materialized state, and local restart tests. JSONL holds frozen evidence and results. No Postgres/ClickHouse initially. |
-| Prometheus + provisioned Grafana | Actual time-series degradation and recovery, bounded-cardinality decision metrics. No Loki, tracing backend, or custom UI initially. |
-| `typesafe-sdk` and one LLM SDK | Thin adapters behind one contract; no agent framework, RAG, tools, or model training. |
-| Docker Compose with app/broker/prometheus/grafana | Four services when demo-ready. Broker console is unnecessary initially. Pin images at implementation time. |
+## StreamGuard
 
-The [official Redpanda single-broker example](https://docs.redpanda.com/labs/docker-compose/single-broker/) is a setup reference, not a reason to copy its optional components. Reserve roughly 4–6 GB for Docker as an initial assumption; verify the actual footprint on this arm64 machine before adding load.
+The local simulator produces records, feeds a bounded queue, and writes to an idempotent in-memory sink. Sink capacity and behavior determine backlog, latency, errors, and recovery. A detector opens after sustained lag. The evidence builder computes all numeric facts before a decision engine sees them.
 
-## Domain mechanics
+Replay requires retained source, a known checkpoint, and a healthy sink. An unsafe recommendation is converted to `ESCALATE` and retained in the audit trail as the raw decision.
 
-**StreamGuard:** producer emits synthetic records at a configurable rate; consumer writes to a local instrumented sink. Fault wrappers change service time, responses, worker availability, or key distribution. Backlog and latency are consequences of work, not prepainted dashboard curves. A local durable sink table keyed by event ID demonstrates bounded replay and duplicate suppression. Commit the broker offset only after the sink transaction; a crash between those steps causes redelivery that dedupe must tolerate.
+## PayRecon
 
-**PayRecon:** one synthetic processor produces lifecycle events and an independently observable processor snapshot. Delivery faults alter the event stream; projection faults alter the local materialized ledger view. Reconciliation compares observed event state to the latest available processor snapshot, including its freshness. A simulator-only oracle records the authoritative lifecycle separately. The triage adapter cannot query it. This is a lifecycle/projection reconciliation exercise, not full double-entry accounting.
-
-The app owns producer, consumers, fault controller, context assembly, adapter runner, local persistence, and a small metrics endpoint. A CLI selects domain/scenario and writes fault-control requests to a local control channel; it cannot expose arbitrary commands. HTTP infrastructure is unnecessary beyond metrics in the MVP.
-
-## Temporal behavior and pressure
-
-Use a seeded logical clock for reproducible offline episodes and wall-clock pacing for live demos. Store event time, arrival time, processing time, and decision time separately. Never report accelerated simulation time as API latency.
-
-Initial demo defaults: one-second observation ticks, five-second metric windows, three consecutive breached windows before a lag incident opens, and two clean windows before closure. A confirmed integrity mismatch opens immediately. One decision is emitted on opening and at a meaningful evidence change, with a ten-second cooldown and at most three evaluations per episode. These are demo policies to freeze before evaluation, not industry SLAs.
-
-Use bounded queues; coalesce superseded snapshots and count dropped/deferred decisions. Keep broker consumption moving during provider slowness. A response carries the evidence version; stale responses are audited and not applied. Context-to-action freshness limit is initially ten wall-clock seconds in live mode, separate from provider timeout.
-
-## Proposed repository layout
-
-Only the Markdown planning files exist today. Create the rest as each milestone needs it.
+PayRecon uses a simplified lifecycle:
 
 ```text
-JevOps/
-  README.md, ROADMAP.md, AGENTS.md
-  docs/
-    architecture.md, scenarios.md, decision-contract.md
-    benchmark-methodology.md, jev-integration.md, demo.md
-  pyproject.toml, uv.lock, .env.example, .gitignore
-  src/jevops/
-    cli.py
-    contracts.py                 # validated evidence/result types
-    runner.py                    # snapshots, deadlines, audit
-    adapters/{rules,jev,llm}.py
-    streamguard/{simulation,detector,context,actions}.py
-    payrecon/{simulation,state_machine,reconcile,context,actions}.py
-    benchmark/{generate,oracle,evaluate,report}.py
-    storage.py, metrics.py
-  configs/
-    policies/                    # deadlines, gates, rule definitions
-    questions/                   # shared label rubrics, provider renderings
-    scenarios/                   # generation ranges, splits, demo seeds
-  tests/{unit,integration,fixtures}/
-  infra/
-    compose.yaml, Dockerfile
-    prometheus/prometheus.yml
-    grafana/{provisioning,dashboards}/
-  artifacts/                     # ignored run data; synthetic only
-  reports/                       # curated manifests, findings, small plots
+AUTHORIZED → CAPTURED → SETTLED → REFUNDED
 ```
 
-Prefer combining tiny modules over empty abstractions. `oracle` must not import the rule adapter; adapters must not import `oracle` or access manifest files. Test this boundary explicitly.
+The current implementation models the first three states. It separates processor source facts from the local projection and deterministically detects duplicates, missing prerequisites, retained delivery gaps, projection mismatches, and conflicting identities or amounts.
 
-## Deferred and rejected scope
+`REPLAY` redelivers a known retained event to the local projection only. `RECONCILE` operates only on a disposable local projection with complete verified source evidence. Neither action can create a payment event or change funds.
 
-No Flink/Spark checkpoint system: ordinary consumer offset/checkpoint behavior is enough. No broker failover, cloud deployment, real processor API, FX, fees, disputes, partial captures/refunds, or production remediation. Network faults are application-level delays/timeouts, clearly labeled; they do not test kernel networking. No model-generated prose is needed to make the demo intelligible.
+## Repository structure
 
-Do not add an ML training pipeline even if a vendor cookbook includes one. Reconsider only if the user later asks a distinct research question that needs training; this plan does not.
+```text
+src/jevops/
+  adapters/       Rules, Jev, and LLM decision adapters
+  benchmark/      Audit record creation and local smoke-suite evaluation
+  streamguard/    Queue/sink simulation and StreamGuard action gate
+  payrecon/       Lifecycle simulation and PayRecon action gate
+  cli.py          Command-line entry point
+tests/            Offline contract and behavior tests
+```
+
+## Deliberate limits
+
+This code is a local experiment, not a distributed production platform. It does not include Flink, Spark, Kafka/Redpanda, Grafana, Prometheus, a database server, cloud deployment, or an agent framework. Those components should be added only when the local decision boundary has been validated and a real demo requirement justifies them.
