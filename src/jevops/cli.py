@@ -10,7 +10,14 @@ from typing import Sequence
 
 from jevops.adapters import JevAdapter, LlmAdapter, RulesAdapter
 from jevops.adapters.fixtures import TimeoutFixtureAdapter, UnsafeReplayFixtureAdapter
-from jevops.benchmark.runner import run_episode_with_adapters, run_smoke_suite, write_jsonl
+from jevops.benchmark.runner import (
+    run_benchmark,
+    run_episode_with_adapters,
+    run_smoke_suite,
+    summarize_results,
+    write_json,
+    write_jsonl,
+)
 from jevops.payrecon.simulation import PayReconScenario, run_episode as run_payrecon_episode
 from jevops.streamguard.simulation import Scenario, run_episode
 
@@ -33,11 +40,24 @@ def _parser() -> argparse.ArgumentParser:
     suite = subcommands.add_parser("smoke-suite", help="Run the 12-episode local contract suite.")
     suite.add_argument("--output", type=Path, default=Path("artifacts/streamguard-smoke.jsonl"))
 
+    benchmark = subcommands.add_parser(
+        "benchmark", help="Run the full multi-seed Rules/Jev/LLM comparison."
+    )
+    benchmark.add_argument("--runs", type=_positive_int, default=1)
+    benchmark.add_argument("--output", type=Path, default=Path("artifacts/benchmark.jsonl"))
+
     payrecon = subcommands.add_parser("payrecon", help="Run one deterministic reconciliation exception.")
     payrecon.add_argument("--scenario", choices=[item.value for item in PayReconScenario], required=True)
     payrecon.add_argument("--seed", type=int, default=601)
     payrecon.add_argument("--show-truth", action="store_true")
     return parser
+
+
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be at least 1")
+    return parsed
 
 
 def _adapters(include_fixtures: bool = False):
@@ -83,6 +103,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         write_jsonl(rows, args.output)
         print(f"wrote {len(rows)} audit records to {args.output}")
         print("API-key-absent providers are recorded as UNAVAILABLE, not mocked.")
+        return 0
+    if args.command == "benchmark":
+        rows = run_benchmark(_adapters(), runs=args.runs)
+        summary = summarize_results(rows)
+        summary_output = args.output.with_suffix(".summary.json")
+        write_jsonl(rows, args.output)
+        write_json(summary, summary_output)
+        for engine_summary in summary:
+            print(json.dumps(engine_summary, sort_keys=True))
+        print(f"wrote {len(rows)} raw results to {args.output}", file=sys.stderr)
+        print(f"wrote summary to {summary_output}", file=sys.stderr)
         return 0
     if args.command == "payrecon":
         episode = run_payrecon_episode(PayReconScenario(args.scenario), args.seed)

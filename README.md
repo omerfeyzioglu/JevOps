@@ -39,7 +39,10 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements.lock
 .venv/bin/python -m pip install --no-deps .
 .venv/bin/python -m jevops smoke-suite
+.venv/bin/python -m jevops benchmark --runs 1 --output artifacts/benchmark.jsonl
 .venv/bin/python -m unittest discover -s tests -v
 ```
+
+The benchmark runs all StreamGuard scenarios with three seeds, gives Rules, Jev, and the LLM the same evidence, writes raw JSONL, prints one summary row per engine, and saves the same summary beside the raw file as `benchmark.summary.json`. `--runs N` repeats every provider request without caching. The smaller `smoke-suite` remains available for quick contract checks.
 
 Run one original scenario with `jevops simulate --scenario traffic_spike --seed 401`, or PayRecon with `jevops payrecon --scenario projection_mismatch --seed 602`. See [docs/architecture.md](docs/architecture.md) for the decision boundary.
