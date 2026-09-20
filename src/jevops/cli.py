@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 from typing import Sequence
 
-from jevops.adapters import GeminiAdapter, JevAdapter, LlmAdapter, OpenAIAdapter, RulesAdapter
+from jevops.adapters import default_adapters
 from jevops.adapters.fixtures import TimeoutFixtureAdapter, UnsafeReplayFixtureAdapter
 from jevops.benchmark.runner import (
     run_benchmark,
@@ -61,14 +61,10 @@ def _positive_int(value: str) -> int:
 
 
 def _adapters(include_fixtures: bool = False):
-    adapters = [RulesAdapter(), JevAdapter(), LlmAdapter()]
+    adapters = default_adapters()
     if include_fixtures:
         adapters.extend([TimeoutFixtureAdapter(), UnsafeReplayFixtureAdapter()])
     return adapters
-
-
-def _benchmark_adapters():
-    return [RulesAdapter(), JevAdapter(), OpenAIAdapter(), GeminiAdapter()]
 
 
 def _display_rows(rows: list[dict[str, object]], *, show_truth: bool) -> None:
@@ -109,7 +105,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("API-key-absent providers are recorded as UNAVAILABLE, not mocked.")
         return 0
     if args.command == "benchmark":
-        rows = run_benchmark(_benchmark_adapters(), runs=args.runs)
+        rows = run_benchmark(_adapters(), runs=args.runs)
         summary = summarize_results(rows)
         summary_output = args.output.with_suffix(".summary.json")
         write_jsonl(rows, args.output)

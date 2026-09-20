@@ -8,7 +8,7 @@ import os
 import signal
 from typing import Any
 
-from jevops.adapters import JevAdapter, LlmAdapter, RulesAdapter
+from jevops.adapters import default_adapters
 from jevops.streaming.processor import (
     decide_and_audit,
     decisions_disagree,
@@ -148,7 +148,7 @@ def main() -> int:
     )
     producer = Producer({"bootstrap.servers": bootstrap, "client.id": "streamguard-decisions"})
     metrics = LiveMetrics()
-    adapters = [RulesAdapter(), JevAdapter(), LlmAdapter()]
+    adapters = default_adapters()
     running = True
 
     def stop(*_: object) -> None:

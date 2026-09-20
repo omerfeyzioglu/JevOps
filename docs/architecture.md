@@ -8,10 +8,12 @@ flowchart LR
     D --> E[Immutable evidence snapshot]
     E --> R[Rules]
     E --> J[Jev]
-    E --> L[LLM]
+    E --> O[GPT-5.6 Luna]
+    E --> M[Gemini 2.5 Flash-Lite]
     R --> G[Safety gate and audit]
     J --> G
-    L --> G
+    O --> G
+    M --> G
     G --> A[Simulated bounded action]
     S --> T[Private evaluator truth]
     T --> V[Offline evaluation]
@@ -26,7 +28,7 @@ The audit record stores the evidence hash, raw recommendation, provider status, 
 
 The offline simulator still produces records, feeds a bounded queue, and writes to an idempotent in-memory sink. The live demo adds a separate path: a seeded generator emits explicit operational samples to Kafka and a keyed Flink job maintains a ten-sample rolling window. Flink deterministically calculates error rate, backlog and throughput trends, p95 sink latency, consecutive failures, recovery trend, and lateness, then publishes the same `EvidenceSnapshot` contract used by the benchmark.
 
-The Python decision worker consumes those snapshots. Every decision cycle sends one snapshot to Rules, Jev, and the LLM, applies the existing safety gate, writes an audit record to the decisions topic and stdout, and exports a compact Prometheus metric set. Flink never imports or invokes a decision adapter.
+The Python decision worker consumes those snapshots. Every decision cycle sends one snapshot to Rules, Jev, GPT-5.6 Luna, and Gemini 2.5 Flash-Lite, applies the existing safety gate, writes an audit record to the decisions topic and stdout, and exports a compact Prometheus metric set. Flink never imports or invokes a decision adapter.
 
 Replay requires retained source, a known checkpoint, and a healthy sink. An unsafe recommendation is converted to `ESCALATE` and retained in the audit trail as the raw decision.
 
@@ -46,7 +48,7 @@ The current implementation models the first three states. It separates processor
 
 ```text
 src/jevops/
-  adapters/       Rules, Jev, and LLM decision adapters
+  adapters/       Rules, Jev, GPT, and Gemini decision adapters
   benchmark/      Audit record creation and local smoke-suite evaluation
   streamguard/    Queue/sink simulation and StreamGuard action gate
   streaming/      Kafka scenario generator and live decision worker

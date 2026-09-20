@@ -101,7 +101,8 @@ services:
       STREAMGUARD_DECISIONS_TOPIC: streamguard.decisions
       DECISION_EVERY_N_SNAPSHOTS: ${DECISION_EVERY_N_SNAPSHOTS:-5}
       TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     ports:
       - "8000:8000"
     restart: unless-stopped

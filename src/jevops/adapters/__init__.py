@@ -3,15 +3,21 @@
 from .base import DecisionAdapter
 from .gemini import GeminiAdapter
 from .jev import JevAdapter
-from .llm import LlmAdapter
 from .openai_llm import OpenAIAdapter
 from .rules import RulesAdapter
+
+
+def default_adapters() -> list[DecisionAdapter]:
+    """Return the four decision engines used by every product flow."""
+
+    return [RulesAdapter(), JevAdapter(), OpenAIAdapter(), GeminiAdapter()]
+
 
 __all__ = [
     "DecisionAdapter",
     "GeminiAdapter",
     "JevAdapter",
-    "LlmAdapter",
     "OpenAIAdapter",
     "RulesAdapter",
+    "default_adapters",
 ]

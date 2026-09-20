@@ -9,9 +9,9 @@ from unittest.mock import MagicMock, patch
 from jevops.adapters import (
     GeminiAdapter,
     JevAdapter,
-    LlmAdapter,
     OpenAIAdapter,
     RulesAdapter,
+    default_adapters,
 )
 from jevops.adapters.fixtures import TimeoutFixtureAdapter, UnsafeReplayFixtureAdapter
 from jevops.benchmark.runner import (
@@ -24,7 +24,7 @@ from jevops.benchmark.runner import (
     summarize_results,
 )
 from jevops.contracts import Action, DecisionResult, IncidentClass, ProviderStatus
-from jevops.cli import _benchmark_adapters
+from jevops.cli import _adapters
 from jevops.streamguard.actions import validate_action
 from jevops.streamguard.simulation import LocalSink, Scenario, run_episode
 from jevops.streaming.processor import decide_and_audit, evidence_from_payload
@@ -95,17 +95,31 @@ class StreamGuardDecisionTests(unittest.TestCase):
 
     def test_all_engines_audit_the_identical_input_hash(self) -> None:
         episode = run_episode(Scenario.SINK_SLOWDOWN_RECOVERABLE, 201)
-        with patch.dict(os.environ, {"TYPESAFE_API_KEY": "", "ANTHROPIC_API_KEY": ""}):
-            rows = run_episode_with_adapters(episode, [RulesAdapter(), JevAdapter(), LlmAdapter()])
+        with patch.dict(
+            os.environ,
+            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": ""},
+        ):
+            rows = run_episode_with_adapters(episode, default_adapters())
         self.assertEqual({row["evidence_hash"] for row in rows}, {episode.evidence.input_hash})
         statuses = {row["audit"]["decision"]["engine"]: row["audit"]["decision"]["status"] for row in rows}
-        self.assertEqual(statuses, {"rules": "OK", "jev": "UNAVAILABLE", "llm": "UNAVAILABLE"})
+        self.assertEqual(
+            statuses,
+            {
+                "rules": "OK",
+                "jev": "UNAVAILABLE",
+                "gpt-5.6-luna": "UNAVAILABLE",
+                "gemini-2.5-flash-lite": "UNAVAILABLE",
+            },
+        )
 
     def test_smoke_suite_preserves_every_scheduled_provider_attempt(self) -> None:
-        with patch.dict(os.environ, {"TYPESAFE_API_KEY": "", "ANTHROPIC_API_KEY": ""}):
-            rows = run_smoke_suite([RulesAdapter(), JevAdapter(), LlmAdapter()])
-        self.assertEqual(len(rows), 36)
-        self.assertEqual(sum(row["audit"]["decision"]["status"] == "UNAVAILABLE" for row in rows), 24)
+        with patch.dict(
+            os.environ,
+            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": ""},
+        ):
+            rows = run_smoke_suite(default_adapters())
+        self.assertEqual(len(rows), 48)
+        self.assertEqual(sum(row["audit"]["decision"]["status"] == "UNAVAILABLE" for row in rows), 36)
 
     def test_benchmark_covers_every_scenario_with_multiple_seeds(self) -> None:
         self.assertEqual({scenario for scenario, _ in BENCHMARK_CASES}, set(Scenario))
@@ -139,9 +153,9 @@ class StreamGuardDecisionTests(unittest.TestCase):
             },
         )
 
-    def test_benchmark_factory_has_the_four_requested_engines(self) -> None:
+    def test_every_flow_factory_has_the_four_requested_engines(self) -> None:
         self.assertEqual(
-            [adapter.name for adapter in _benchmark_adapters()],
+            [adapter.name for adapter in _adapters()],
             ["rules", "jev", "gpt-5.6-luna", "gemini-2.5-flash-lite"],
         )
 
@@ -376,6 +390,13 @@ class PayReconTests(unittest.TestCase):
 
     def test_payrecon_engines_share_an_identical_evidence_snapshot(self) -> None:
         episode = run_payrecon_episode(PayReconScenario.OUT_OF_ORDER, 604)
-        with patch.dict(os.environ, {"TYPESAFE_API_KEY": "", "ANTHROPIC_API_KEY": ""}):
-            rows = run_episode_with_adapters(episode, [RulesAdapter(), JevAdapter(), LlmAdapter()])
+        with patch.dict(
+            os.environ,
+            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": ""},
+        ):
+            rows = run_episode_with_adapters(episode, default_adapters())
         self.assertEqual({row["evidence_hash"] for row in rows}, {episode.evidence.input_hash})
+        self.assertEqual(
+            [row["audit"]["decision"]["engine"] for row in rows],
+            ["rules", "jev", "gpt-5.6-luna", "gemini-2.5-flash-lite"],
+        )
