@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 from typing import Sequence
 
-from jevops.adapters import JevAdapter, LlmAdapter, RulesAdapter
+from jevops.adapters import GeminiAdapter, JevAdapter, LlmAdapter, OpenAIAdapter, RulesAdapter
 from jevops.adapters.fixtures import TimeoutFixtureAdapter, UnsafeReplayFixtureAdapter
 from jevops.benchmark.runner import (
     run_benchmark,
@@ -41,7 +41,7 @@ def _parser() -> argparse.ArgumentParser:
     suite.add_argument("--output", type=Path, default=Path("artifacts/streamguard-smoke.jsonl"))
 
     benchmark = subcommands.add_parser(
-        "benchmark", help="Run the full multi-seed Rules/Jev/LLM comparison."
+        "benchmark", help="Run the full multi-seed Rules/Jev/GPT/Gemini comparison."
     )
     benchmark.add_argument("--runs", type=_positive_int, default=1)
     benchmark.add_argument("--output", type=Path, default=Path("artifacts/benchmark.jsonl"))
@@ -65,6 +65,10 @@ def _adapters(include_fixtures: bool = False):
     if include_fixtures:
         adapters.extend([TimeoutFixtureAdapter(), UnsafeReplayFixtureAdapter()])
     return adapters
+
+
+def _benchmark_adapters():
+    return [RulesAdapter(), JevAdapter(), OpenAIAdapter(), GeminiAdapter()]
 
 
 def _display_rows(rows: list[dict[str, object]], *, show_truth: bool) -> None:
@@ -105,7 +109,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("API-key-absent providers are recorded as UNAVAILABLE, not mocked.")
         return 0
     if args.command == "benchmark":
-        rows = run_benchmark(_adapters(), runs=args.runs)
+        rows = run_benchmark(_benchmark_adapters(), runs=args.runs)
         summary = summarize_results(rows)
         summary_output = args.output.with_suffix(".summary.json")
         write_jsonl(rows, args.output)

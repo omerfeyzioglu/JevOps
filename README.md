@@ -26,7 +26,7 @@ Open the [StreamGuard Grafana dashboard](http://localhost:3000/d/streamguard-liv
 
 Available live scenarios are `normal`, `traffic_spike`, `sink_slowdown_recoverable`, `sink_failure_persistent`, `ambiguous_early`, `intermittent_failure`, `false_recovery`, and `traffic_spike_sink_degradation`. Add `--duration 90` or `--interval 0.25` to change the run length or playback speed.
 
-Without credentials, Jev and LLM are recorded as `UNAVAILABLE`; no fake decisions are substituted. To enable them, copy `.env.example` to `.env`, add `TYPESAFE_API_KEY` and/or `ANTHROPIC_API_KEY`, and restart `decision-service`. `DECISION_EVERY_N_SNAPSHOTS` controls provider call frequency.
+Without credentials, Jev and the live-demo LLM are recorded as `UNAVAILABLE`; no fake decisions are substituted. To enable them, copy `.env.example` to `.env`, add `TYPESAFE_API_KEY` and/or `ANTHROPIC_API_KEY`, and restart `decision-service`. `DECISION_EVERY_N_SNAPSHOTS` controls provider call frequency.
 
 Stop the stack with `docker compose down`. Add `-v` only when you also want to remove persisted local Kafka data.
 
@@ -39,10 +39,11 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements.lock
 .venv/bin/python -m pip install --no-deps .
 .venv/bin/python -m jevops smoke-suite
+set -a && source .env && set +a
 .venv/bin/python -m jevops benchmark --runs 1 --output artifacts/benchmark.jsonl
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-The benchmark runs all StreamGuard scenarios with three seeds, gives Rules, Jev, and the LLM the same evidence, writes raw JSONL, prints one summary row per engine, and saves the same summary beside the raw file as `benchmark.summary.json`. `--runs N` repeats every provider request without caching. The smaller `smoke-suite` remains available for quick contract checks.
+Set `TYPESAFE_API_KEY`, `OPENAI_API_KEY`, and `GEMINI_API_KEY` to compare Rules, Jev, GPT-5.6 Luna, and Gemini 2.5 Flash-Lite. The benchmark runs all StreamGuard scenarios with three seeds, gives every engine the same evidence, writes raw JSONL, prints one summary row per engine, and saves the same summary beside the raw file as `benchmark.summary.json`. `--runs N` repeats every provider request without application-level caching. The smaller `smoke-suite` remains available for quick contract checks.
 
 Run one original scenario with `jevops simulate --scenario traffic_spike --seed 401`, or PayRecon with `jevops payrecon --scenario projection_mismatch --seed 602`. See [docs/architecture.md](docs/architecture.md) for the decision boundary.

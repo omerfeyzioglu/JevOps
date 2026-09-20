@@ -2,10 +2,17 @@ from __future__ import annotations
 
 import json
 import os
+from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from jevops.adapters import JevAdapter, LlmAdapter, RulesAdapter
+from jevops.adapters import (
+    GeminiAdapter,
+    JevAdapter,
+    LlmAdapter,
+    OpenAIAdapter,
+    RulesAdapter,
+)
 from jevops.adapters.fixtures import TimeoutFixtureAdapter, UnsafeReplayFixtureAdapter
 from jevops.benchmark.runner import (
     BENCHMARK_CASES,
@@ -17,6 +24,7 @@ from jevops.benchmark.runner import (
     summarize_results,
 )
 from jevops.contracts import Action, DecisionResult, IncidentClass, ProviderStatus
+from jevops.cli import _benchmark_adapters
 from jevops.streamguard.actions import validate_action
 from jevops.streamguard.simulation import LocalSink, Scenario, run_episode
 from jevops.streaming.processor import decide_and_audit, evidence_from_payload
@@ -107,6 +115,90 @@ class StreamGuardDecisionTests(unittest.TestCase):
                 set(BENCHMARK_SEEDS),
             )
         self.assertGreater(len(BENCHMARK_SEEDS), 1)
+
+    def test_benchmark_comparators_share_evidence_without_credentials(self) -> None:
+        episode = run_episode(Scenario.FALSE_RECOVERY, 101, snapshot_second=33)
+        adapters = [RulesAdapter(), JevAdapter(), OpenAIAdapter(), GeminiAdapter()]
+        with patch.dict(
+            os.environ,
+            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": ""},
+        ):
+            rows = run_episode_with_adapters(episode, adapters)
+        self.assertEqual({row["evidence_hash"] for row in rows}, {episode.evidence.input_hash})
+        statuses = {
+            row["audit"]["decision"]["engine"]: row["audit"]["decision"]["status"]
+            for row in rows
+        }
+        self.assertEqual(
+            statuses,
+            {
+                "rules": "OK",
+                "jev": "UNAVAILABLE",
+                "gpt-5.6-luna": "UNAVAILABLE",
+                "gemini-2.5-flash-lite": "UNAVAILABLE",
+            },
+        )
+
+    def test_benchmark_factory_has_the_four_requested_engines(self) -> None:
+        self.assertEqual(
+            [adapter.name for adapter in _benchmark_adapters()],
+            ["rules", "jev", "gpt-5.6-luna", "gemini-2.5-flash-lite"],
+        )
+
+    def test_gpt_and_gemini_use_the_same_prompt_schema_and_record_usage(self) -> None:
+        evidence = run_episode(Scenario.TRAFFIC_SPIKE, 101).evidence
+        payload = json.dumps(
+            {
+                "incident_class": IncidentClass.LOAD_SURGE.value,
+                "recommended_action": Action.WAIT.value,
+            }
+        )
+
+        openai_client = MagicMock()
+        openai_client.__enter__.return_value = openai_client
+        openai_client.responses.create.return_value = SimpleNamespace(
+            output_text=payload,
+            model="gpt-5.6-luna",
+            usage=SimpleNamespace(input_tokens=100, output_tokens=10, total_tokens=110),
+        )
+        gemini_client = MagicMock()
+        gemini_client.__enter__.return_value = gemini_client
+        gemini_client.models.generate_content.return_value = SimpleNamespace(
+            text=payload,
+            usage_metadata=SimpleNamespace(
+                prompt_token_count=90,
+                candidates_token_count=8,
+                total_token_count=98,
+                thoughts_token_count=3,
+                cached_content_token_count=None,
+            ),
+        )
+
+        with (
+            patch.dict(
+                os.environ,
+                {"OPENAI_API_KEY": "test-openai", "GEMINI_API_KEY": "test-gemini"},
+            ),
+            patch("openai.OpenAI", return_value=openai_client),
+            patch("google.genai.Client", return_value=gemini_client),
+        ):
+            openai_result = OpenAIAdapter().decide(evidence)
+            gemini_result = GeminiAdapter().decide(evidence)
+
+        openai_request = openai_client.responses.create.call_args.kwargs
+        gemini_request = gemini_client.models.generate_content.call_args.kwargs
+        self.assertEqual(openai_request["input"], gemini_request["contents"])
+        self.assertNotIn("scenario", openai_request["input"].lower())
+        self.assertEqual(
+            openai_request["text"]["format"]["schema"],
+            gemini_request["config"]["response_json_schema"],
+        )
+        self.assertFalse(openai_request["store"])
+        self.assertNotIn("prompt_cache_options", openai_request)
+        self.assertEqual(openai_result.status, ProviderStatus.OK)
+        self.assertEqual(gemini_result.status, ProviderStatus.OK)
+        self.assertEqual(openai_result.metadata["usage"]["total_tokens"], 110)
+        self.assertEqual(gemini_result.metadata["usage"]["total_tokens"], 98)
 
     def test_benchmark_repeats_calls_and_shares_each_evidence_snapshot(self) -> None:
         first = RulesAdapter()
