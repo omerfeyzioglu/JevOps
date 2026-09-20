@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 .coverage
 build/
+flink/target/
 *.egg-info/
 artifacts/
 .env
