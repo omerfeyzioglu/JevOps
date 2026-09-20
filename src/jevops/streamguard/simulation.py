@@ -240,7 +240,13 @@ def _snapshot(
     )
 
 
-def run_episode(scenario: Scenario, seed: int, duration_seconds: int = 85) -> Episode:
+def run_episode(
+    scenario: Scenario,
+    seed: int,
+    duration_seconds: int = 85,
+    *,
+    snapshot_second: int | None = None,
+) -> Episode:
     """Run a seeded event trajectory and freeze one evidence snapshot.
 
     The result stores private truth alongside the public snapshot only for the
@@ -250,6 +256,8 @@ def run_episode(scenario: Scenario, seed: int, duration_seconds: int = 85) -> Ep
 
     if duration_seconds < 20:
         raise ValueError("duration_seconds must cover warmup and fault onset")
+    if snapshot_second is not None and not 0 <= snapshot_second < duration_seconds:
+        raise ValueError("snapshot_second must fall inside the episode")
 
     random_source = random.Random(seed)
     # Keep capacity safely above normal load while still changing the trajectory
@@ -294,12 +302,17 @@ def run_episode(scenario: Scenario, seed: int, duration_seconds: int = 85) -> Ep
         timeline.append(tick)
         if detector_open and detector_opened_at is None:
             detector_opened_at = second
-            evidence = _snapshot(
-                timeline, seed=seed, baseline_arrival=baseline_arrival, evidence_version=1
-            )
+            if snapshot_second is None:
+                evidence = _snapshot(
+                    timeline, seed=seed, baseline_arrival=baseline_arrival, evidence_version=1
+                )
         # This is a forced, predeclared early snapshot. It represents a triage
         # question before detection can reasonably identify a cause.
         if scenario is Scenario.AMBIGUOUS_EARLY and second == 16:
+            evidence = _snapshot(
+                timeline, seed=seed, baseline_arrival=baseline_arrival, evidence_version=1
+            )
+        if snapshot_second == second:
             evidence = _snapshot(
                 timeline, seed=seed, baseline_arrival=baseline_arrival, evidence_version=1
             )

@@ -68,6 +68,11 @@ BENCHMARK_SEEDS: tuple[int, ...] = (101, 202, 303)
 BENCHMARK_CASES: tuple[tuple[Scenario, int], ...] = tuple(
     (scenario, seed) for scenario in Scenario for seed in BENCHMARK_SEEDS
 )
+BENCHMARK_SNAPSHOT_SECONDS: dict[Scenario, int] = {
+    Scenario.INTERMITTENT_FAILURE: 22,
+    Scenario.FALSE_RECOVERY: 33,
+    Scenario.TRAFFIC_SPIKE_SINK_DEGRADATION: 20,
+}
 
 
 def run_smoke_suite(adapters: Iterable[DecisionAdapter]) -> list[dict[str, object]]:
@@ -93,7 +98,11 @@ def run_benchmark(
     rows: list[dict[str, object]] = []
     for run_number in range(1, runs + 1):
         for scenario, seed in scheduled_cases:
-            episode = run_episode(scenario, seed)
+            episode = run_episode(
+                scenario,
+                seed,
+                snapshot_second=BENCHMARK_SNAPSHOT_SECONDS.get(scenario),
+            )
             for row in run_episode_with_adapters(episode, scheduled_adapters):
                 row["benchmark"] = {"run": run_number, "seed": seed}
                 rows.append(row)
@@ -123,7 +132,7 @@ def summarize_results(rows: Iterable[dict[str, object]]) -> list[dict[str, objec
         latencies = [
             float(row["audit"]["decision"]["elapsed_ms"])  # type: ignore[index]
             for row, status in zip(engine_rows, statuses, strict=True)
-            if status != "UNAVAILABLE"
+            if status == "OK"
         ]
         action_correct = _count_true(evaluated, "action_acceptable")
         class_correct = _count_true(evaluated, "class_acceptable")

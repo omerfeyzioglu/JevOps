@@ -10,6 +10,7 @@ from jevops.adapters.fixtures import TimeoutFixtureAdapter, UnsafeReplayFixtureA
 from jevops.benchmark.runner import (
     BENCHMARK_CASES,
     BENCHMARK_SEEDS,
+    BENCHMARK_SNAPSHOT_SECONDS,
     run_benchmark,
     run_episode_with_adapters,
     run_smoke_suite,
@@ -127,6 +128,55 @@ class StreamGuardDecisionTests(unittest.TestCase):
             grouped_hashes.setdefault(key, set()).add(row["evidence_hash"])
         self.assertTrue(all(len(hashes) == 1 for hashes in grouped_hashes.values()))
 
+    def test_complex_benchmark_snapshots_expose_intended_behavior(self) -> None:
+        scenarios = (
+            Scenario.INTERMITTENT_FAILURE,
+            Scenario.FALSE_RECOVERY,
+            Scenario.TRAFFIC_SPIKE_SINK_DEGRADATION,
+        )
+        rows = run_benchmark(
+            [RulesAdapter()],
+            cases=tuple((scenario, 101) for scenario in scenarios),
+        )
+        evidence = {row["truth"]["scenario"]: row["evidence"] for row in rows}
+
+        intermittent = evidence[Scenario.INTERMITTENT_FAILURE.value]
+        self.assertEqual(
+            intermittent["observation_second"],
+            BENCHMARK_SNAPSHOT_SECONDS[Scenario.INTERMITTENT_FAILURE],
+        )
+        self.assertIn("sink write timeout observed", intermittent["observations"])
+        self.assertIn("sink write latency above baseline", intermittent["observations"])
+        self.assertGreater(intermittent["facts"]["sink_error_count_window"], 0)
+
+        false_recovery = evidence[Scenario.FALSE_RECOVERY.value]
+        self.assertEqual(
+            false_recovery["observation_second"],
+            BENCHMARK_SNAPSHOT_SECONDS[Scenario.FALSE_RECOVERY],
+        )
+        self.assertIn("sink recovery sample observed", false_recovery["observations"])
+        self.assertIn("sink write timeout observed", false_recovery["observations"])
+        self.assertGreater(false_recovery["facts"]["sink_error_count_window"], 0)
+
+        combined = evidence[Scenario.TRAFFIC_SPIKE_SINK_DEGRADATION.value]
+        self.assertEqual(
+            combined["observation_second"],
+            BENCHMARK_SNAPSHOT_SECONDS[Scenario.TRAFFIC_SPIKE_SINK_DEGRADATION],
+        )
+        self.assertGreaterEqual(
+            combined["facts"]["arrival_rate_events_per_second"],
+            combined["facts"]["baseline_arrival_rate_events_per_second"] * 3,
+        )
+        self.assertGreaterEqual(combined["facts"]["sink_latency_p95_ms"], 200)
+        self.assertIn("input throughput above baseline", combined["observations"])
+        self.assertIn("sink write latency above baseline", combined["observations"])
+
+        for snapshot in evidence.values():
+            model_payload = json.dumps(snapshot).lower()
+            self.assertNotIn("scenario", model_payload)
+            self.assertNotIn("acceptable_actions", model_payload)
+            self.assertNotIn("unsafe_actions", model_payload)
+
     def test_benchmark_summary_reports_quality_latency_and_failures(self) -> None:
         def row(
             status: str,
@@ -168,8 +218,8 @@ class StreamGuardDecisionTests(unittest.TestCase):
         self.assertEqual(summary["incident_class_accuracy"], 1.0)
         self.assertEqual(summary["unsafe_recommendation_count"], 1)
         self.assertEqual(summary["unnecessary_escalation_count"], 1)
-        self.assertEqual(summary["median_latency_ms"], 25.0)
-        self.assertEqual(summary["p95_latency_ms"], 38.5)
+        self.assertEqual(summary["median_latency_ms"], 15.0)
+        self.assertEqual(summary["p95_latency_ms"], 19.5)
         self.assertEqual(summary["provider_failure_count"], 1)
         self.assertEqual(summary["provider_timeout_count"], 1)
         self.assertEqual(summary["provider_unavailable_count"], 1)
