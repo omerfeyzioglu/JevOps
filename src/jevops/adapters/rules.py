@@ -78,7 +78,11 @@ class RulesAdapter(DecisionAdapter):
             incident_class=incident_class,
             recommended_action=action,
             elapsed_ms=(perf_counter() - started) * 1_000,
-            metadata={"rule_id": rule_id, "rubric_version": RUBRIC_VERSION},
+            metadata={
+                "rule_id": rule_id,
+                "rubric_version": RUBRIC_VERSION,
+                "latency_kind": "deterministic_local",
+            },
         )
 
     def _payrecon(self, evidence: EvidenceSnapshot, started: float) -> DecisionResult:
@@ -132,5 +136,9 @@ class RulesAdapter(DecisionAdapter):
             incident_class=incident_class,
             recommended_action=action,
             elapsed_ms=(perf_counter() - started) * 1_000,
-            metadata={"rule_id": rule_id, "rubric_version": RUBRIC_VERSION},
+            metadata={
+                "rule_id": rule_id,
+                "rubric_version": RUBRIC_VERSION,
+                "latency_kind": "deterministic_local",
+            },
         )

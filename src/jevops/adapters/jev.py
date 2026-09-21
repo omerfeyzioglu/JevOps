@@ -27,6 +27,7 @@ class JevAdapter(DecisionAdapter):
                 engine_version=self.version,
                 status=ProviderStatus.UNAVAILABLE,
                 error="TYPESAFE_API_KEY is not configured",
+                metadata={"latency_kind": "api_end_to_end"},
             )
         started = perf_counter()
         try:
@@ -65,6 +66,7 @@ class JevAdapter(DecisionAdapter):
                 elapsed_ms=(perf_counter() - started) * 1_000,
                 metadata={
                     "rubric_version": RUBRIC_VERSION,
+                    "latency_kind": "api_end_to_end",
                     "incident_confidence": incident.confidence,
                     "incident_probabilities": dict(incident.probabilities),
                     "action_confidence": action.confidence,
@@ -87,6 +89,7 @@ class JevAdapter(DecisionAdapter):
             provider_model=self.model,
             elapsed_ms=(perf_counter() - started) * 1_000,
             error=message,
+            metadata={"latency_kind": "api_end_to_end"},
         )
 
 

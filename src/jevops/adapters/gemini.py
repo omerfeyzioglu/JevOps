@@ -31,6 +31,7 @@ class GeminiAdapter(DecisionAdapter):
                 engine_version=self.version,
                 status=ProviderStatus.UNAVAILABLE,
                 error="GEMINI_API_KEY is not configured",
+                metadata={"latency_kind": "api_end_to_end"},
             )
         started = perf_counter()
         try:
@@ -61,6 +62,7 @@ class GeminiAdapter(DecisionAdapter):
                 elapsed_ms=(perf_counter() - started) * 1_000,
                 metadata={
                     "rubric_version": RUBRIC_VERSION,
+                    "latency_kind": "api_end_to_end",
                     "usage": _usage(response.usage_metadata),
                 },
             )
@@ -79,6 +81,7 @@ class GeminiAdapter(DecisionAdapter):
             provider_model=self.model,
             elapsed_ms=(perf_counter() - started) * 1_000,
             error=str(error),
+            metadata={"latency_kind": "api_end_to_end"},
         )
 
 

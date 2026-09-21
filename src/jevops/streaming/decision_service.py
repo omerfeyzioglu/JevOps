@@ -41,8 +41,8 @@ class LiveMetrics:
         )
         self.decision_latency = Histogram(
             "jevops_decision_latency_seconds",
-            "Decision adapter latency",
-            ["engine"],
+            "Decision latency, labelled by local inference or API end-to-end scope",
+            ["engine", "latency_kind"],
             buckets=(0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2.5, 5, 10, 20),
         )
         self.confidence = Gauge(
@@ -96,10 +96,18 @@ class LiveMetrics:
             raw = _enum_value(gate["raw_action"], "NONE")
             effective = _enum_value(gate["effective_action"], "NONE")
             incident_class = _enum_value(decision["incident_class"], "NONE")
+            metadata = decision.get("metadata", {})
+            latency_kind = (
+                str(metadata.get("latency_kind", "unspecified"))
+                if isinstance(metadata, dict)
+                else "unspecified"
+            )
             if effective != "NONE":
                 valid += 1
             self.decisions.labels(engine, raw, effective, status).inc()
-            self.decision_latency.labels(engine).observe(float(decision["elapsed_ms"]) / 1_000)
+            self.decision_latency.labels(engine, latency_kind).observe(
+                float(decision["elapsed_ms"]) / 1_000
+            )
             if row["confidence"] is not None:
                 self.confidence.labels(engine).set(float(row["confidence"]))
             if raw != "NONE" and (gate["override_reason"] is not None or raw != effective):

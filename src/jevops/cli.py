@@ -41,7 +41,7 @@ def _parser() -> argparse.ArgumentParser:
     suite.add_argument("--output", type=Path, default=Path("artifacts/streamguard-smoke.jsonl"))
 
     benchmark = subcommands.add_parser(
-        "benchmark", help="Run the full multi-seed Rules/Jev/GPT/Gemini comparison."
+        "benchmark", help="Run the full multi-seed Rules/Jev/Laya/GPT/Gemini comparison."
     )
     benchmark.add_argument("--runs", type=_positive_int, default=1)
     benchmark.add_argument("--output", type=Path, default=Path("artifacts/benchmark.jsonl"))

@@ -129,6 +129,7 @@ def summarize_results(rows: Iterable[dict[str, object]]) -> list[dict[str, objec
             _enum_value(row["audit"]["decision"]["status"])  # type: ignore[index]
             for row in engine_rows
         ]
+        latency_kinds = {_latency_kind(row) for row in engine_rows}
         latencies = [
             float(row["audit"]["decision"]["elapsed_ms"])  # type: ignore[index]
             for row, status in zip(engine_rows, statuses, strict=True)
@@ -142,6 +143,7 @@ def summarize_results(rows: Iterable[dict[str, object]]) -> list[dict[str, objec
         summary.append(
             {
                 "engine": engine,
+                "latency_kind": next(iter(latency_kinds)) if len(latency_kinds) == 1 else "mixed",
                 "total_attempts": len(engine_rows),
                 "total_evaluated_decisions": evaluated_count,
                 "action_accuracy": _rate(action_correct, evaluated_count),
@@ -201,3 +203,9 @@ def _percentile(values: list[float], quantile: float) -> float:
 
 def _enum_value(value: object) -> str:
     return str(getattr(value, "value", value))
+
+
+def _latency_kind(row: dict[str, object]) -> str:
+    decision = row["audit"]["decision"]  # type: ignore[index]
+    metadata = decision.get("metadata", {})  # type: ignore[union-attr]
+    return str(metadata.get("latency_kind", "unspecified")) if isinstance(metadata, dict) else "unspecified"

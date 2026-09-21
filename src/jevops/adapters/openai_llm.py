@@ -29,6 +29,7 @@ class OpenAIAdapter(DecisionAdapter):
                 engine_version=self.version,
                 status=ProviderStatus.UNAVAILABLE,
                 error="OPENAI_API_KEY is not configured",
+                metadata={"latency_kind": "api_end_to_end"},
             )
         started = perf_counter()
         try:
@@ -59,7 +60,11 @@ class OpenAIAdapter(DecisionAdapter):
                 recommended_action=Action(payload["recommended_action"]),
                 provider_model=response.model,
                 elapsed_ms=(perf_counter() - started) * 1_000,
-                metadata={"rubric_version": RUBRIC_VERSION, "usage": _usage(response.usage)},
+                metadata={
+                    "rubric_version": RUBRIC_VERSION,
+                    "latency_kind": "api_end_to_end",
+                    "usage": _usage(response.usage),
+                },
             )
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
             return self._error(ProviderStatus.INVALID_OUTPUT, started, exc)
@@ -76,6 +81,7 @@ class OpenAIAdapter(DecisionAdapter):
             provider_model=self.model,
             elapsed_ms=(perf_counter() - started) * 1_000,
             error=str(error),
+            metadata={"latency_kind": "api_end_to_end"},
         )
 
 

@@ -5,12 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "jevops"
 version = "0.1.0"
-description = "Synthetic real-time exception-triage experiments for Rules, Jev, GPT, and Gemini."
+description = "Synthetic real-time exception-triage experiments for Rules, Jev, Laya, GPT, and Gemini."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
   "confluent-kafka>=2.6,<3",
   "google-genai>=2.24,<3",
+  "laya>=0.3.4,<0.4",
   "openai>=3.16,<4",
   "prometheus-client>=0.21,<1",
   "typesafe-sdk>=0.7,<0.8",

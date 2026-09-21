@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 from jevops.adapters import (
     GeminiAdapter,
     JevAdapter,
+    LayaAdapter,
     OpenAIAdapter,
     RulesAdapter,
     default_adapters,
@@ -97,7 +98,7 @@ class StreamGuardDecisionTests(unittest.TestCase):
         episode = run_episode(Scenario.SINK_SLOWDOWN_RECOVERABLE, 201)
         with patch.dict(
             os.environ,
-            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": ""},
+            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": "", "LAYA_ENABLED": "false"},
         ):
             rows = run_episode_with_adapters(episode, default_adapters())
         self.assertEqual({row["evidence_hash"] for row in rows}, {episode.evidence.input_hash})
@@ -107,6 +108,7 @@ class StreamGuardDecisionTests(unittest.TestCase):
             {
                 "rules": "OK",
                 "jev": "UNAVAILABLE",
+                "laya": "UNAVAILABLE",
                 "gpt-5.6-luna": "UNAVAILABLE",
                 "gemini-2.5-flash-lite": "UNAVAILABLE",
             },
@@ -115,11 +117,11 @@ class StreamGuardDecisionTests(unittest.TestCase):
     def test_smoke_suite_preserves_every_scheduled_provider_attempt(self) -> None:
         with patch.dict(
             os.environ,
-            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": ""},
+            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": "", "LAYA_ENABLED": "false"},
         ):
             rows = run_smoke_suite(default_adapters())
-        self.assertEqual(len(rows), 48)
-        self.assertEqual(sum(row["audit"]["decision"]["status"] == "UNAVAILABLE" for row in rows), 36)
+        self.assertEqual(len(rows), 60)
+        self.assertEqual(sum(row["audit"]["decision"]["status"] == "UNAVAILABLE" for row in rows), 48)
 
     def test_benchmark_covers_every_scenario_with_multiple_seeds(self) -> None:
         self.assertEqual({scenario for scenario, _ in BENCHMARK_CASES}, set(Scenario))
@@ -132,10 +134,10 @@ class StreamGuardDecisionTests(unittest.TestCase):
 
     def test_benchmark_comparators_share_evidence_without_credentials(self) -> None:
         episode = run_episode(Scenario.FALSE_RECOVERY, 101, snapshot_second=33)
-        adapters = [RulesAdapter(), JevAdapter(), OpenAIAdapter(), GeminiAdapter()]
+        adapters = [RulesAdapter(), JevAdapter(), LayaAdapter(), OpenAIAdapter(), GeminiAdapter()]
         with patch.dict(
             os.environ,
-            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": ""},
+            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": "", "LAYA_ENABLED": "false"},
         ):
             rows = run_episode_with_adapters(episode, adapters)
         self.assertEqual({row["evidence_hash"] for row in rows}, {episode.evidence.input_hash})
@@ -148,16 +150,61 @@ class StreamGuardDecisionTests(unittest.TestCase):
             {
                 "rules": "OK",
                 "jev": "UNAVAILABLE",
+                "laya": "UNAVAILABLE",
                 "gpt-5.6-luna": "UNAVAILABLE",
                 "gemini-2.5-flash-lite": "UNAVAILABLE",
             },
         )
 
-    def test_every_flow_factory_has_the_four_requested_engines(self) -> None:
+    def test_every_flow_factory_has_the_five_requested_engines(self) -> None:
         self.assertEqual(
             [adapter.name for adapter in _adapters()],
-            ["rules", "jev", "gpt-5.6-luna", "gemini-2.5-flash-lite"],
+            ["rules", "jev", "laya", "gpt-5.6-luna", "gemini-2.5-flash-lite"],
         )
+
+    def test_laya_reuses_one_local_model_and_records_typed_answers(self) -> None:
+        evidence = run_episode(Scenario.TRAFFIC_SPIKE, 101).evidence
+        agent = MagicMock()
+        agent.predict.return_value = {
+            "model": "laya-rl-agent",
+            "answers": {
+                "incident_class": {
+                    "choice": IncidentClass.LOAD_SURGE.value,
+                    "confidence": 0.91,
+                    "probabilities": {IncidentClass.LOAD_SURGE.value: 0.91},
+                },
+                "recommended_action": {
+                    "choice": Action.WAIT.value,
+                    "confidence": 0.84,
+                    "probabilities": {Action.WAIT.value: 0.84},
+                },
+            },
+            "usage": {"input_tokens": 42, "output_tokens": 0},
+        }
+        LayaAdapter.clear_model_cache()
+        try:
+            with patch.object(LayaAdapter, "_load_model", return_value=agent) as load_model:
+                first = LayaAdapter(model="local-checkpoint", subfolder=None)
+                second = LayaAdapter(model="local-checkpoint", subfolder=None)
+                first_result = first.decide(evidence)
+                second_result = second.decide(evidence)
+            self.assertEqual(load_model.call_count, 1)
+        finally:
+            LayaAdapter.clear_model_cache()
+
+        self.assertEqual(first_result.status, ProviderStatus.OK)
+        self.assertEqual(first_result.incident_class, IncidentClass.LOAD_SURGE)
+        self.assertEqual(first_result.recommended_action, Action.WAIT)
+        self.assertEqual(first_result.metadata["latency_kind"], "local_inference")
+        self.assertEqual(first_result.metadata["local_inference_ms"], first_result.elapsed_ms)
+        self.assertEqual(first_result.metadata["action_confidence"], 0.84)
+        self.assertEqual(first_result.metadata["usage"]["input_tokens"], 42)
+        self.assertEqual(second_result.status, ProviderStatus.OK)
+        state, questions = agent.predict.call_args.args
+        self.assertEqual(state, evidence.model_state())
+        self.assertNotIn("scenario", json.dumps(state).lower())
+        self.assertEqual(questions["incident_class"]["type"], "choice")
+        self.assertEqual(questions["recommended_action"]["type"], "choice")
 
     def test_gpt_and_gemini_use_the_same_prompt_schema_and_record_usage(self) -> None:
         evidence = run_episode(Scenario.TRAFFIC_SPIKE, 101).evidence
@@ -213,6 +260,8 @@ class StreamGuardDecisionTests(unittest.TestCase):
         self.assertEqual(gemini_result.status, ProviderStatus.OK)
         self.assertEqual(openai_result.metadata["usage"]["total_tokens"], 110)
         self.assertEqual(gemini_result.metadata["usage"]["total_tokens"], 98)
+        self.assertEqual(openai_result.metadata["latency_kind"], "api_end_to_end")
+        self.assertEqual(gemini_result.metadata["latency_kind"], "api_end_to_end")
 
     def test_benchmark_repeats_calls_and_shares_each_evidence_snapshot(self) -> None:
         first = RulesAdapter()
@@ -392,11 +441,11 @@ class PayReconTests(unittest.TestCase):
         episode = run_payrecon_episode(PayReconScenario.OUT_OF_ORDER, 604)
         with patch.dict(
             os.environ,
-            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": ""},
+            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": "", "LAYA_ENABLED": "false"},
         ):
             rows = run_episode_with_adapters(episode, default_adapters())
         self.assertEqual({row["evidence_hash"] for row in rows}, {episode.evidence.input_hash})
         self.assertEqual(
             [row["audit"]["decision"]["engine"] for row in rows],
-            ["rules", "jev", "gpt-5.6-luna", "gemini-2.5-flash-lite"],
+            ["rules", "jev", "laya", "gpt-5.6-luna", "gemini-2.5-flash-lite"],
         )
