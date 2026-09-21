@@ -102,7 +102,9 @@ services:
       DECISION_EVERY_N_SNAPSHOTS: ${DECISION_EVERY_N_SNAPSHOTS:-5}
       TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_ENABLED: ${OPENAI_ENABLED:-true}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
       LAYA_ENABLED: ${LAYA_ENABLED:-true}
       LAYA_MODEL: ${LAYA_MODEL:-convaiinnovations/laya}
       LAYA_SUBFOLDER: ${LAYA_SUBFOLDER:-typed-decisions}

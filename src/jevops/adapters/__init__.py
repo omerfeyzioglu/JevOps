@@ -1,5 +1,7 @@
 """Decision adapters with a common, evidence-only interface."""
 
+import os
+
 from .base import DecisionAdapter
 from .gemini import GeminiAdapter
 from .jev import JevAdapter
@@ -9,9 +11,13 @@ from .rules import RulesAdapter
 
 
 def default_adapters() -> list[DecisionAdapter]:
-    """Return the five decision engines used by every product flow."""
+    """Return configured decision engines for every product flow."""
 
-    return [RulesAdapter(), JevAdapter(), LayaAdapter(), OpenAIAdapter(), GeminiAdapter()]
+    adapters: list[DecisionAdapter] = [RulesAdapter(), JevAdapter(), LayaAdapter()]
+    if os.environ.get("OPENAI_ENABLED", "true").lower() not in {"0", "false", "no", "off"}:
+        adapters.append(OpenAIAdapter())
+    adapters.append(GeminiAdapter())
+    return adapters
 
 
 __all__ = [

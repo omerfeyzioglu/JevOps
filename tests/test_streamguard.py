@@ -98,7 +98,7 @@ class StreamGuardDecisionTests(unittest.TestCase):
         episode = run_episode(Scenario.SINK_SLOWDOWN_RECOVERABLE, 201)
         with patch.dict(
             os.environ,
-            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": "", "LAYA_ENABLED": "false"},
+            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "OPENAI_ENABLED": "true", "GEMINI_API_KEY": "", "LAYA_ENABLED": "false"},
         ):
             rows = run_episode_with_adapters(episode, default_adapters())
         self.assertEqual({row["evidence_hash"] for row in rows}, {episode.evidence.input_hash})
@@ -110,14 +110,14 @@ class StreamGuardDecisionTests(unittest.TestCase):
                 "jev": "UNAVAILABLE",
                 "laya": "UNAVAILABLE",
                 "gpt-5.6-luna": "UNAVAILABLE",
-                "gemini-2.5-flash-lite": "UNAVAILABLE",
+                "gemini-3.5-flash-lite": "UNAVAILABLE",
             },
         )
 
     def test_smoke_suite_preserves_every_scheduled_provider_attempt(self) -> None:
         with patch.dict(
             os.environ,
-            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": "", "LAYA_ENABLED": "false"},
+            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "OPENAI_ENABLED": "true", "GEMINI_API_KEY": "", "LAYA_ENABLED": "false"},
         ):
             rows = run_smoke_suite(default_adapters())
         self.assertEqual(len(rows), 60)
@@ -152,15 +152,29 @@ class StreamGuardDecisionTests(unittest.TestCase):
                 "jev": "UNAVAILABLE",
                 "laya": "UNAVAILABLE",
                 "gpt-5.6-luna": "UNAVAILABLE",
-                "gemini-2.5-flash-lite": "UNAVAILABLE",
+                "gemini-3.5-flash-lite": "UNAVAILABLE",
             },
         )
 
     def test_every_flow_factory_has_the_five_requested_engines(self) -> None:
-        self.assertEqual(
-            [adapter.name for adapter in _adapters()],
-            ["rules", "jev", "laya", "gpt-5.6-luna", "gemini-2.5-flash-lite"],
-        )
+        with patch.dict(os.environ, {"OPENAI_ENABLED": "true"}):
+            self.assertEqual(
+                [adapter.name for adapter in _adapters()],
+                ["rules", "jev", "laya", "gpt-5.6-luna", "gemini-3.5-flash-lite"],
+            )
+
+    def test_openai_can_be_disabled_without_disabling_gemini(self) -> None:
+        with patch.dict(os.environ, {"OPENAI_ENABLED": "false"}):
+            self.assertEqual(
+                [adapter.name for adapter in _adapters()],
+                ["rules", "jev", "laya", "gemini-3.5-flash-lite"],
+            )
+
+    def test_gemini_engine_label_matches_configured_model(self) -> None:
+        with patch.dict(os.environ, {"GEMINI_MODEL": "gemini-3.1-flash-lite"}):
+            adapter = GeminiAdapter()
+        self.assertEqual(adapter.model, "gemini-3.1-flash-lite")
+        self.assertEqual(adapter.name, adapter.model)
 
     def test_laya_reuses_one_local_model_and_records_typed_answers(self) -> None:
         evidence = run_episode(Scenario.TRAFFIC_SPIKE, 101).evidence
@@ -441,11 +455,11 @@ class PayReconTests(unittest.TestCase):
         episode = run_payrecon_episode(PayReconScenario.OUT_OF_ORDER, 604)
         with patch.dict(
             os.environ,
-            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "GEMINI_API_KEY": "", "LAYA_ENABLED": "false"},
+            {"TYPESAFE_API_KEY": "", "OPENAI_API_KEY": "", "OPENAI_ENABLED": "true", "GEMINI_API_KEY": "", "LAYA_ENABLED": "false"},
         ):
             rows = run_episode_with_adapters(episode, default_adapters())
         self.assertEqual({row["evidence_hash"] for row in rows}, {episode.evidence.input_hash})
         self.assertEqual(
             [row["audit"]["decision"]["engine"] for row in rows],
-            ["rules", "jev", "laya", "gpt-5.6-luna", "gemini-2.5-flash-lite"],
+            ["rules", "jev", "laya", "gpt-5.6-luna", "gemini-3.5-flash-lite"],
         )

@@ -10,7 +10,7 @@ flowchart LR
     E --> J[Jev]
     E --> L[Laya local inference]
     E --> O[GPT-5.6 Luna]
-    E --> M[Gemini 2.5 Flash-Lite]
+    E --> M[Gemini 3.5 Flash-Lite]
     R --> G[Safety gate and audit]
     J --> G
     L --> G
@@ -30,7 +30,7 @@ The audit record stores the evidence hash, raw recommendation, provider status, 
 
 The offline simulator still produces records, feeds a bounded queue, and writes to an idempotent in-memory sink. The live demo adds a separate path: a seeded generator emits explicit operational samples to Kafka and a keyed Flink job maintains a ten-sample rolling window. Flink deterministically calculates error rate, backlog and throughput trends, p95 sink latency, consecutive failures, recovery trend, and lateness, then publishes the same `EvidenceSnapshot` contract used by the benchmark.
 
-The Python decision worker consumes those snapshots. Every decision cycle sends one snapshot to Rules, Jev, local Laya, GPT-5.6 Luna, and Gemini 2.5 Flash-Lite, applies the existing safety gate, writes an audit record to the decisions topic and stdout, and exports a compact Prometheus metric set. Laya's configured checkpoint loads once per worker process and is reused for later decisions. Flink never imports or invokes a decision adapter.
+The Python decision worker consumes those snapshots. Every decision cycle sends one snapshot to Rules, Jev, local Laya, and Gemini 3.5 Flash-Lite, plus GPT-5.6 Luna when `OPENAI_ENABLED` is true. It applies the existing safety gate, writes an audit record to the decisions topic and stdout, and exports a compact Prometheus metric set. Laya's configured checkpoint loads once per worker process and is reused for later decisions. Flink never imports or invokes a decision adapter.
 
 Replay requires retained source, a known checkpoint, and a healthy sink. An unsafe recommendation is converted to `ESCALATE` and retained in the audit trail as the raw decision.
 

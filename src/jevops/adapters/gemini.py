@@ -1,4 +1,4 @@
-"""Gemini 2.5 Flash-Lite structured-output benchmark comparator."""
+"""Gemini Flash-Lite structured-output benchmark comparator."""
 
 from __future__ import annotations
 
@@ -14,13 +14,14 @@ from jevops.contracts import Action, DecisionResult, EvidenceSnapshot, IncidentC
 
 
 class GeminiAdapter(DecisionAdapter):
-    name = "gemini-2.5-flash-lite"
+    name = "gemini-3.5-flash-lite"
     version = "google-genai-structured-v1"
 
     def __init__(
-        self, model: str = "gemini-2.5-flash-lite", timeout_seconds: float = 15.0
+        self, model: str | None = None, timeout_seconds: float = 15.0
     ) -> None:
-        self.model = model
+        self.model = model or os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+        self.name = self.model
         self.timeout_seconds = timeout_seconds
 
     def decide(self, evidence: EvidenceSnapshot) -> DecisionResult:
