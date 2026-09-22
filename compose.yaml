@@ -85,7 +85,15 @@ services:
       FLINK_PROPERTIES: |
         jobmanager.rpc.address: jobmanager
         rest.address: jobmanager
-    command: ["/opt/flink/bin/flink", "run", "-d", "/opt/flink/usrlib/streamguard-flink.jar"]
+    command:
+      - /bin/bash
+      - -ec
+      - |
+        if /opt/flink/bin/flink list --running | grep -Fq 'StreamGuard deterministic evidence (RUNNING)'; then
+          echo 'StreamGuard Flink job is already running'
+        else
+          /opt/flink/bin/flink run -d /opt/flink/usrlib/streamguard-flink.jar
+        fi
     restart: on-failure
 
   decision-service:
@@ -99,6 +107,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       STREAMGUARD_EVIDENCE_TOPIC: streamguard.evidence
       STREAMGUARD_DECISIONS_TOPIC: streamguard.decisions
+      KAFKA_DECISION_GROUP: ${KAFKA_DECISION_GROUP:-streamguard-decisions-v1}
       DECISION_EVERY_N_SNAPSHOTS: ${DECISION_EVERY_N_SNAPSHOTS:-5}
       TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
@@ -109,8 +118,11 @@ services:
       LAYA_MODEL: ${LAYA_MODEL:-convaiinnovations/laya}
       LAYA_SUBFOLDER: ${LAYA_SUBFOLDER:-typed-decisions}
       LAYA_DEVICE: ${LAYA_DEVICE:-}
+      HF_HUB_DISABLE_XET: "1"
     ports:
       - "8000:8000"
+    volumes:
+      - laya-cache:/root/.cache/huggingface
     restart: unless-stopped
 
   scenario-generator:
@@ -118,8 +130,6 @@ services:
     profiles: ["tools"]
     depends_on:
       kafka-init:
-        condition: service_completed_successfully
-      flink-job:
         condition: service_completed_successfully
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
@@ -151,3 +161,4 @@ services:
 
 volumes:
   kafka-data:
+  laya-cache:

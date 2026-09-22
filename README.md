@@ -30,7 +30,7 @@ Available live scenarios are `normal`, `traffic_spike`, `sink_slowdown_recoverab
 
 Laya runs locally and downloads its configured checkpoint on first use; it requires no API key. The default is `convaiinnovations/laya` with the `typed-decisions` checkpoint. Set `LAYA_MODEL`, `LAYA_SUBFOLDER`, and optionally `LAYA_DEVICE` (`cpu`, `mps`, or `cuda`) in your local `.env` to change it. `LAYA_ENABLED=false` explicitly disables local inference. Laya's reported `elapsed_ms` is local inference time after model loading; Jev, GPT, and Gemini report API end-to-end latency. Without credentials, those three remote providers are recorded as `UNAVAILABLE`; no fake decisions are substituted. To enable them, copy `.env.example` to `.env`, add `TYPESAFE_API_KEY`, `OPENAI_API_KEY`, and/or `GEMINI_API_KEY`, and restart `decision-service`. Set `OPENAI_ENABLED=false` to omit GPT from live decisions and benchmark rows without removing its adapter. Gemini defaults to `gemini-3.5-flash-lite`; set `GEMINI_MODEL` to select another model available to your API key. `DECISION_EVERY_N_SNAPSHOTS` controls provider call frequency.
 
-Stop the stack with `docker compose down`. Add `-v` only when you also want to remove persisted local Kafka data.
+Stop the stack with `docker compose down`. Add `-v` only when you also want to remove persisted local Kafka data and the Docker Laya model cache. The decision-service image uses CPU PyTorch, and the first Docker run downloads the Laya checkpoint into a persistent volume.
 
 ## Offline benchmark and tests
 
