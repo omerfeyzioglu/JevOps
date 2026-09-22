@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import replace
 from types import SimpleNamespace
 import unittest
 from unittest.mock import MagicMock, patch
@@ -20,6 +21,7 @@ from jevops.benchmark.runner import (
     BENCHMARK_SEEDS,
     BENCHMARK_SNAPSHOT_SECONDS,
     run_benchmark,
+    run_payrecon_benchmark,
     run_episode_with_adapters,
     run_smoke_suite,
     summarize_results,
@@ -86,6 +88,15 @@ class StreamGuardDecisionTests(unittest.TestCase):
         self.assertEqual(gate.raw_action, Action.REPLAY)
         self.assertEqual(gate.effective_action, Action.ESCALATE)
         self.assertIn("healthy sink", gate.override_reason or "")
+
+    def test_replay_requires_a_confirmed_gap_even_with_a_healthy_sink(self) -> None:
+        evidence = run_episode(Scenario.TRAFFIC_SPIKE, 401).evidence
+        replay = UnsafeReplayFixtureAdapter().decide(evidence)
+        self.assertTrue(evidence.facts["sink_healthy"])
+        self.assertEqual(validate_action(evidence, replay).effective_action, Action.ESCALATE)
+
+        confirmed = replace(evidence, facts={**evidence.facts, "confirmed_replay_gap": True})
+        self.assertEqual(validate_action(confirmed, replay).effective_action, Action.REPLAY)
 
     def test_timeout_is_a_distinct_non_decision(self) -> None:
         evidence = run_episode(Scenario.TRAFFIC_SPIKE, 401).evidence
@@ -435,6 +446,12 @@ class StreamGuardLiveTests(unittest.TestCase):
 
 
 class PayReconTests(unittest.TestCase):
+    def test_payrecon_benchmark_covers_every_scenario_and_seed(self) -> None:
+        rows = run_payrecon_benchmark([RulesAdapter()], seeds=(101, 202))
+        self.assertEqual(len(rows), len(PayReconScenario) * 2)
+        self.assertEqual({row["domain"] for row in rows}, {"payrecon"})
+        self.assertEqual({row["truth"]["scenario"] for row in rows}, {item.value for item in PayReconScenario})
+
     def test_rules_keep_reconciliation_deterministic(self) -> None:
         rules = RulesAdapter()
         missing = rules.decide(run_payrecon_episode(PayReconScenario.MISSING_RETAINED, 601).evidence)
@@ -451,6 +468,19 @@ class PayReconTests(unittest.TestCase):
         self.assertEqual(gate.effective_action, Action.ESCALATE)
         self.assertIn("non-conflicting", gate.override_reason or "")
 
+    def test_payrecon_reconcile_waits_for_prerequisites_and_a_mismatch(self) -> None:
+        decision = DecisionResult(
+            engine="fixture_reconcile",
+            engine_version="test-only",
+            status=ProviderStatus.OK,
+            incident_class=IncidentClass.PROJECTION_MISMATCH,
+            recommended_action=Action.RECONCILE,
+        )
+        out_of_order = run_payrecon_episode(PayReconScenario.OUT_OF_ORDER, 604).evidence
+        mismatch = run_payrecon_episode(PayReconScenario.PROJECTION_MISMATCH, 602).evidence
+        self.assertEqual(validate_payrecon_action(out_of_order, decision).effective_action, Action.ESCALATE)
+        self.assertEqual(validate_payrecon_action(mismatch, decision).effective_action, Action.RECONCILE)
+
     def test_payrecon_engines_share_an_identical_evidence_snapshot(self) -> None:
         episode = run_payrecon_episode(PayReconScenario.OUT_OF_ORDER, 604)
         with patch.dict(
@@ -459,6 +489,7 @@ class PayReconTests(unittest.TestCase):
         ):
             rows = run_episode_with_adapters(episode, default_adapters())
         self.assertEqual({row["evidence_hash"] for row in rows}, {episode.evidence.input_hash})
+        self.assertEqual({row["domain"] for row in rows}, {"payrecon"})
         self.assertEqual(
             [row["audit"]["decision"]["engine"] for row in rows],
             ["rules", "jev", "laya", "gpt-5.6-luna", "gemini-3.5-flash-lite"],

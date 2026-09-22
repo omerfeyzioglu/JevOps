@@ -1,0 +1,242 @@
+[
+  {
+    "scenario": "normal",
+    "seed": 101,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 1927.2637080284767,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "normal",
+    "seed": 202,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 583.9949999935925,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "normal",
+    "seed": 303,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 520.1273749698885,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "sink_slowdown_recoverable",
+    "seed": 101,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 622.9013339616358,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "sink_slowdown_recoverable",
+    "seed": 202,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 548.3795829932205,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "sink_slowdown_recoverable",
+    "seed": 303,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 519.3932080292143,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "sink_failure_persistent",
+    "seed": 101,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 539.6799999871291,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "sink_failure_persistent",
+    "seed": 202,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 536.3455829792656,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "sink_failure_persistent",
+    "seed": 303,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 529.6809169813059,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "traffic_spike",
+    "seed": 101,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 532.0283340406604,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "traffic_spike",
+    "seed": 202,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 519.8802080121823,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "traffic_spike",
+    "seed": 303,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 531.670166994445,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "ambiguous_early",
+    "seed": 101,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "SINK_DEGRADED",
+    "ms": 578.00383400172,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "ambiguous_early",
+    "seed": 202,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 533.8468750123866,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "ambiguous_early",
+    "seed": 303,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 523.1593339703977,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "intermittent_failure",
+    "seed": 101,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 520.561249984894,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "intermittent_failure",
+    "seed": 202,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 518.9977499539964,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "intermittent_failure",
+    "seed": 303,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 515.5298339668661,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "false_recovery",
+    "seed": 101,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 554.2373749776743,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "false_recovery",
+    "seed": 202,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 535.1572909858078,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "false_recovery",
+    "seed": 303,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 546.4249579817988,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "traffic_spike_sink_degradation",
+    "seed": 101,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 667.1518750372343,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "traffic_spike_sink_degradation",
+    "seed": 202,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "MIXED",
+    "ms": 607.0149580482394,
+    "correct_action": false,
+    "error_type": null
+  },
+  {
+    "scenario": "traffic_spike_sink_degradation",
+    "seed": 303,
+    "status": "OK",
+    "action": "REPLAY",
+    "class": "SINK_DEGRADED",
+    "ms": 552.2847080137581,
+    "correct_action": false,
+    "error_type": null
+  }
+]

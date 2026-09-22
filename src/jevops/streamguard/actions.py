@@ -28,13 +28,13 @@ def validate_action(evidence: EvidenceSnapshot, decision: DecisionResult) -> Gat
             return GateResult(raw, raw, raw, None)
         return GateResult(raw, Action.ESCALATE, Action.ESCALATE, "pause would exceed storage policy")
     if raw is Action.REPLAY:
-        required = ("source_retained", "checkpoint_known", "sink_healthy")
-        if all(bool(facts[name]) for name in required):
+        required = ("confirmed_replay_gap", "source_retained", "checkpoint_known", "sink_healthy")
+        if all(bool(facts.get(name, False)) for name in required):
             return GateResult(raw, raw, raw, None)
         return GateResult(
             raw,
             Action.ESCALATE,
             Action.ESCALATE,
-            "replay requires retained source, known checkpoint, and healthy sink",
+            "replay requires a confirmed gap, retained source, known checkpoint, and healthy sink",
         )
     return GateResult(raw, Action.ESCALATE, Action.ESCALATE, "unsupported action")

@@ -1,0 +1,50 @@
+[
+  {
+    "scenario": "normal",
+    "run_id": "bench-20260922-normal",
+    "generator_exit": 0,
+    "expected_events": 60
+  },
+  {
+    "scenario": "traffic_spike",
+    "run_id": "bench-20260922-traffic_spike",
+    "generator_exit": 0,
+    "expected_events": 60
+  },
+  {
+    "scenario": "sink_slowdown_recoverable",
+    "run_id": "bench-20260922-sink_slowdown_recoverable",
+    "generator_exit": 0,
+    "expected_events": 60
+  },
+  {
+    "scenario": "sink_failure_persistent",
+    "run_id": "bench-20260922-sink_failure_persistent",
+    "generator_exit": 0,
+    "expected_events": 60
+  },
+  {
+    "scenario": "ambiguous_early",
+    "run_id": "bench-20260922-ambiguous_early",
+    "generator_exit": 0,
+    "expected_events": 60
+  },
+  {
+    "scenario": "intermittent_failure",
+    "run_id": "bench-20260922-intermittent_failure",
+    "generator_exit": 0,
+    "expected_events": 60
+  },
+  {
+    "scenario": "false_recovery",
+    "run_id": "bench-20260922-false_recovery",
+    "generator_exit": 0,
+    "expected_events": 60
+  },
+  {
+    "scenario": "traffic_spike_sink_degradation",
+    "run_id": "bench-20260922-traffic_spike_sink_degradation",
+    "generator_exit": 0,
+    "expected_events": 60
+  }
+]

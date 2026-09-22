@@ -183,6 +183,7 @@ public final class StreamGuardJob {
           Math.max(0, current.path("baseline_events_per_second").asInt() - received));
       facts.put("source_retained", current.path("source_retained").asBoolean());
       facts.put("checkpoint_known", current.path("checkpoint_available").asBoolean());
+      facts.put("confirmed_replay_gap", false);
       facts.put("source_available", current.path("source_available").asBoolean());
       facts.put("wait_budget_remaining", lag > 2_000 ? 0 : 1);
       facts.put("retry_budget_remaining", consecutiveFailures >= 8 ? 0 : 1);
@@ -201,7 +202,7 @@ public final class StreamGuardJob {
       ArrayNode allowed = policy.putArray("allowed_actions");
       allowed.add("WAIT").add("RETRY").add("PAUSE").add("REPLAY").add("ESCALATE");
       ArrayNode replay = policy.putArray("replay_requires");
-      replay.add("source_retained").add("checkpoint_known").add("sink_healthy");
+      replay.add("confirmed_replay_gap").add("source_retained").add("checkpoint_known").add("sink_healthy");
       policy.put("wait_interval_seconds", 10);
       return mapper.writeValueAsString(root);
     }

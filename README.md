@@ -1,5 +1,7 @@
 # JevOps
 
+[Latest local benchmark results](docs/benchmark-results-2026-09-22.md)
+
 JevOps compares bounded operational decisions from deterministic Rules, Jev, local Laya, GPT-5.6 Luna, and Gemini 3.5 Flash-Lite. All five engines receive the same immutable evidence; deterministic code owns aggregation, lifecycle checks, and safety prerequisites. The models recommend actions but never execute infrastructure changes.
 
 StreamGuard is the live demo. A seeded generator publishes operational events to Kafka, Flink turns a rolling window into `EvidenceSnapshot` records, and a Python worker runs the existing adapters and authoritative safety gate. Prometheus and Grafana show the incident and decision behavior. The existing offline StreamGuard benchmark and PayRecon simulation remain available.
@@ -43,9 +45,12 @@ python3.12 -m venv .venv
 .venv/bin/python -m jevops smoke-suite
 set -a && source .env && set +a
 .venv/bin/python -m jevops benchmark --runs 1 --output artifacts/benchmark.jsonl
+.venv/bin/python -m jevops payrecon-benchmark --runs 1 --output artifacts/payrecon-benchmark.jsonl
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Set `TYPESAFE_API_KEY`, `OPENAI_API_KEY`, and `GEMINI_API_KEY` to compare Rules, Jev, local Laya, GPT-5.6 Luna, and Gemini 3.5 Flash-Lite in the live demo, StreamGuard commands, and PayRecon. The benchmark runs all StreamGuard scenarios with three seeds, gives every engine the same evidence, writes raw JSONL, prints one summary row per engine, and saves the same summary beside the raw file as `benchmark.summary.json`. `--runs N` repeats every provider request without application-level caching. The smaller `smoke-suite` remains available for quick contract checks.
+Set `TYPESAFE_API_KEY`, `OPENAI_API_KEY`, and `GEMINI_API_KEY` to compare Rules, Jev, local Laya, GPT-5.6 Luna, and Gemini 3.5 Flash-Lite in the live demo, StreamGuard commands, and PayRecon. The benchmark commands run every scenario in their domain with three seeds, give every engine the same evidence, write raw JSONL, print one summary row per engine, and save the same summary beside the raw file as a `.summary.json` file. `--runs N` repeats every provider request without application-level caching. The smaller `smoke-suite` remains available for quick contract checks.
+
+Benchmark accuracy and unsafe recommendation rates score the providers' raw recommendations. Each raw record also contains the safety gate's effective action. StreamGuard replay requires a confirmed missing-data gap as well as a retained source, known checkpoint, and healthy sink. The current scenarios contain no confirmed replay gap, so the gate escalates replay requests. PayRecon reconciliation requires a verified projection mismatch with no pending prerequisite or integrity conflict.
 
 Run one original scenario with `jevops simulate --scenario traffic_spike --seed 401`, or PayRecon with `jevops payrecon --scenario projection_mismatch --seed 602`. See [docs/architecture.md](docs/architecture.md) for the decision boundary.

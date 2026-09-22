@@ -32,7 +32,7 @@ The offline simulator still produces records, feeds a bounded queue, and writes 
 
 The Python decision worker consumes those snapshots. Every decision cycle sends one snapshot to Rules, Jev, local Laya, and Gemini 3.5 Flash-Lite, plus GPT-5.6 Luna when `OPENAI_ENABLED` is true. It applies the existing safety gate, writes an audit record to the decisions topic and stdout, and exports a compact Prometheus metric set. Laya's configured checkpoint loads once per worker process and is reused for later decisions. Flink never imports or invokes a decision adapter.
 
-Replay requires retained source, a known checkpoint, and a healthy sink. An unsafe recommendation is converted to `ESCALATE` and retained in the audit trail as the raw decision.
+Replay requires a confirmed missing-data gap, retained source, a known checkpoint, and a healthy sink. A recommendation that fails these observable prerequisites is converted to `ESCALATE` and retained in the audit trail as the raw decision.
 
 ## PayRecon
 
@@ -44,7 +44,7 @@ AUTHORIZED → CAPTURED → SETTLED → REFUNDED
 
 The current implementation models the first three states. It separates processor source facts from the local projection and deterministically detects duplicates, missing prerequisites, retained delivery gaps, projection mismatches, and conflicting identities or amounts.
 
-`REPLAY` redelivers a known retained event to the local projection only. `RECONCILE` operates only on a disposable local projection with complete verified source evidence. Neither action can create a payment event or change funds.
+`REPLAY` redelivers a known retained event to the local projection only. `RECONCILE` operates only on a disposable local projection with complete verified source evidence, a verified mismatch, and no pending prerequisite or integrity conflict. Neither action can create a payment event or change funds.
 
 ## Repository structure
 

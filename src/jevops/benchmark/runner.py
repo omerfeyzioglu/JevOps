@@ -12,13 +12,14 @@ from typing import Iterable
 from jevops.adapters.base import DecisionAdapter
 from jevops.benchmark.oracle import evaluate, truth_as_dict
 from jevops.contracts import AuditRecord
+from jevops.payrecon.simulation import PayReconEpisode, PayReconScenario, run_episode as run_payrecon_episode
 from jevops.payrecon.actions import validate_action as validate_payrecon_action
 from jevops.streamguard.actions import validate_action as validate_streamguard_action
 from jevops.streamguard.simulation import Episode, Scenario, run_episode
 
 
 def run_episode_with_adapters(
-    episode: Episode, adapters: Iterable[DecisionAdapter]
+    episode: Episode | PayReconEpisode, adapters: Iterable[DecisionAdapter]
 ) -> list[dict[str, object]]:
     """Run each engine against the same snapshot, then evaluate outside the engine."""
 
@@ -34,7 +35,7 @@ def run_episode_with_adapters(
         score = evaluate(decision, episode.truth)
         rows.append(
             {
-                "domain": "streamguard",
+                "domain": episode.evidence.domain,
                 "evidence": episode.evidence.model_state(),
                 "evidence_hash": episode.evidence.input_hash,
                 "audit": audit.as_dict(),
@@ -106,6 +107,29 @@ def run_benchmark(
             for row in run_episode_with_adapters(episode, scheduled_adapters):
                 row["benchmark"] = {"run": run_number, "seed": seed}
                 rows.append(row)
+    return rows
+
+
+def run_payrecon_benchmark(
+    adapters: Iterable[DecisionAdapter],
+    *,
+    runs: int = 1,
+    seeds: Iterable[int] = BENCHMARK_SEEDS,
+) -> list[dict[str, object]]:
+    """Compare adapters on every PayRecon exception with shared evidence."""
+
+    if runs < 1:
+        raise ValueError("runs must be at least 1")
+    scheduled_adapters = tuple(adapters)
+    scheduled_seeds = tuple(seeds)
+    rows: list[dict[str, object]] = []
+    for run_number in range(1, runs + 1):
+        for scenario in PayReconScenario:
+            for seed in scheduled_seeds:
+                episode = run_payrecon_episode(scenario, seed)
+                for row in run_episode_with_adapters(episode, scheduled_adapters):
+                    row["benchmark"] = {"run": run_number, "seed": seed}
+                    rows.append(row)
     return rows
 
 

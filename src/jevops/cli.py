@@ -12,6 +12,7 @@ from jevops.adapters import default_adapters
 from jevops.adapters.fixtures import TimeoutFixtureAdapter, UnsafeReplayFixtureAdapter
 from jevops.benchmark.runner import (
     run_benchmark,
+    run_payrecon_benchmark,
     run_episode_with_adapters,
     run_smoke_suite,
     summarize_results,
@@ -45,6 +46,12 @@ def _parser() -> argparse.ArgumentParser:
     )
     benchmark.add_argument("--runs", type=_positive_int, default=1)
     benchmark.add_argument("--output", type=Path, default=Path("artifacts/benchmark.jsonl"))
+
+    payrecon_benchmark = subcommands.add_parser(
+        "payrecon-benchmark", help="Run the full multi-seed PayRecon comparison."
+    )
+    payrecon_benchmark.add_argument("--runs", type=_positive_int, default=1)
+    payrecon_benchmark.add_argument("--output", type=Path, default=Path("artifacts/payrecon-benchmark.jsonl"))
 
     payrecon = subcommands.add_parser("payrecon", help="Run one deterministic reconciliation exception.")
     payrecon.add_argument("--scenario", choices=[item.value for item in PayReconScenario], required=True)
@@ -104,8 +111,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"wrote {len(rows)} audit records to {args.output}")
         print("API-key-absent providers are recorded as UNAVAILABLE, not mocked.")
         return 0
-    if args.command == "benchmark":
-        rows = run_benchmark(_adapters(), runs=args.runs)
+    if args.command in {"benchmark", "payrecon-benchmark"}:
+        rows = (
+            run_benchmark(_adapters(), runs=args.runs)
+            if args.command == "benchmark"
+            else run_payrecon_benchmark(_adapters(), runs=args.runs)
+        )
         summary = summarize_results(rows)
         summary_output = args.output.with_suffix(".summary.json")
         write_jsonl(rows, args.output)

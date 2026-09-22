@@ -213,6 +213,7 @@ def _snapshot(
         "capacity_headroom_events_per_second": capacity_headroom,
         "source_retained": True,
         "checkpoint_known": True,
+        "confirmed_replay_gap": False,
         "wait_budget_remaining": 1,
         "retry_budget_remaining": 1,
         "deadline_exceeded": False,
@@ -234,7 +235,7 @@ def _snapshot(
                 Action.REPLAY.value,
                 Action.ESCALATE.value,
             ],
-            "replay_requires": ["source_retained", "checkpoint_known", "sink_healthy"],
+            "replay_requires": ["confirmed_replay_gap", "source_retained", "checkpoint_known", "sink_healthy"],
             "wait_interval_seconds": 10,
         },
     )

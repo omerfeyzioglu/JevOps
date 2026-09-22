@@ -21,7 +21,9 @@ def validate_action(evidence: EvidenceSnapshot, decision: DecisionResult) -> Gat
             return GateResult(raw, raw, raw, None)
         return GateResult(raw, Action.ESCALATE, Action.ESCALATE, "replay requires a known retained, non-conflicting event")
     if raw is Action.RECONCILE:
-        if facts["complete_verified_source"] and facts["local_projection_disposable"] and not facts["integrity_conflict"]:
+        if (facts["complete_verified_source"] and facts["local_projection_disposable"]
+                and facts["pending_prerequisite_count"] == 0
+                and facts["projection_mismatch"] and not facts["integrity_conflict"]):
             return GateResult(raw, raw, raw, None)
-        return GateResult(raw, Action.ESCALATE, Action.ESCALATE, "reconciliation requires complete verified source and no conflict")
+        return GateResult(raw, Action.ESCALATE, Action.ESCALATE, "reconciliation requires a verified source, a projection mismatch, and no pending prerequisites or conflict")
     return GateResult(raw, Action.ESCALATE, Action.ESCALATE, "action is not permitted for reconciliation")
