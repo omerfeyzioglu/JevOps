@@ -1,4 +1,4 @@
-"""Local Laya typed-decision adapter with process-wide model reuse."""
+"""Local Laya choice adapter with process-wide model reuse."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ class LayaAdapter(DecisionAdapter):
     """Run Laya locally; checkpoint loading is excluded from inference latency."""
 
     name = "laya"
-    version = "laya-local-typed-decisions-v1"
+    version = "laya-local-choice-v2"
     _models: ClassVar[dict[tuple[str, str | None, str | None], Any]] = {}
     _model_lock: ClassVar[Lock] = Lock()
 
@@ -29,7 +29,7 @@ class LayaAdapter(DecisionAdapter):
     ) -> None:
         self.model = model or os.environ.get("LAYA_MODEL", "convaiinnovations/laya")
         configured_subfolder = subfolder if subfolder is not None else os.environ.get(
-            "LAYA_SUBFOLDER", "typed-decisions"
+            "LAYA_SUBFOLDER", ""
         )
         self.subfolder = configured_subfolder or None
         self.device = device if device is not None else os.environ.get("LAYA_DEVICE") or None

@@ -181,6 +181,19 @@ class StreamGuardDecisionTests(unittest.TestCase):
                 ["rules", "jev", "laya", "gemini-3.5-flash-lite"],
             )
 
+    def test_default_engines_exclude_openai(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(
+                [adapter.name for adapter in _adapters()],
+                ["rules", "jev", "laya", "gemini-3.5-flash-lite"],
+            )
+
+    def test_laya_defaults_to_general_checkpoint(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            adapter = LayaAdapter()
+        self.assertEqual(adapter.provider_model, "convaiinnovations/laya")
+        self.assertIsNone(adapter.subfolder)
+
     def test_gemini_engine_label_matches_configured_model(self) -> None:
         with patch.dict(os.environ, {"GEMINI_MODEL": "gemini-3.1-flash-lite"}):
             adapter = GeminiAdapter()

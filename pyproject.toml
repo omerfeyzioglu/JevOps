@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "jevops"
 version = "0.1.0"
-description = "Synthetic real-time exception-triage experiments for Rules, Jev, Laya, GPT, and Gemini."
+description = "Auditable operational decision benchmarks with deterministic evidence and safety gates."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -19,6 +19,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.3,<9"]
+
+[project.urls]
+Repository = "https://github.com/omerfeyzioglu/JevOps"
+Results = "https://github.com/omerfeyzioglu/JevOps/tree/main/results"
 
 [project.scripts]
 jevops = "jevops.cli:main"

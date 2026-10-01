@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-02",
+  "runs_per_case": 1,
+  "seeds": [
+    101,
+    202,
+    303
+  ],
+  "engines": [
+    "rules",
+    "jev",
+    "laya",
+    "gemini-3.5-flash-lite"
+  ],
+  "openai_enabled": false,
+  "laya": {
+    "model": "convaiinnovations/laya",
+    "subfolder": null,
+    "device": "cpu",
+    "latency_scope": "warm local inference"
+  },
+  "remote_latency_scope": "API end to end",
+  "python": "3.13.13",
+  "platform": "Darwin arm64"
+}

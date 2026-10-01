@@ -14,7 +14,7 @@ def default_adapters() -> list[DecisionAdapter]:
     """Return configured decision engines for every product flow."""
 
     adapters: list[DecisionAdapter] = [RulesAdapter(), JevAdapter(), LayaAdapter()]
-    if os.environ.get("OPENAI_ENABLED", "true").lower() not in {"0", "false", "no", "off"}:
+    if os.environ.get("OPENAI_ENABLED", "false").lower() not in {"0", "false", "no", "off"}:
         adapters.append(OpenAIAdapter())
     adapters.append(GeminiAdapter())
     return adapters
