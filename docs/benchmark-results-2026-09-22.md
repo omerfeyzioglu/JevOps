@@ -1,4 +1,6 @@
-# Benchmark results — 22 September 2026
+# Benchmark results — 22 September 2026 (historical)
+
+The Laya integration in this historical run had no input-truncation guard. Use the [corrected report](benchmark-results-2026-10-02-corrected.md) for model comparisons. The live records below remain evidence of the transport and audit pipeline.
 
 ## Scope
 
@@ -25,7 +27,7 @@ Laya recommended `REPLAY` in all 24 cases. The updated gate changed all 24 to `E
 
 The local `.env` selects `LAYA_DEVICE=cpu`, and the Docker image installs CPU PyTorch. Replaying the exact same 24 StreamGuard evidence records through Laya alone produced 24 `OK` decisions, 24 `REPLAY` actions, 0 correct actions, and a 923 ms median on CPU. On this Mac, MPS is available; forcing `device="mps"` used the MPS device and yielded the same 24 actions and incident classes with a 536 ms median. These separate warm-inference measurements are saved in [CPU](../results/2026-09-22/laya-cpu-recheck.json) and [MPS](../results/2026-09-22/laya-mps-recheck.json) records. Model loading is excluded from both timings; the API timings for Jev and Gemini include the network round trip. This confirms the reported accuracy for these cases and shows that acceleration improves latency without changing the model's choices.
 
-The configured `typed-decisions` checkpoint is described by the installed Laya package as specialized for four fixed workflows; this project's `incident_class` and `recommended_action` question IDs are outside those workflows. As a diagnostic, the general English checkpoint was run on the exact same evidence with MPS. It chose `WAIT` in all 24 StreamGuard cases (6/24 correct actions, 376 ms median) and scored 4/21 correct actions in PayRecon (409 ms median). Those [StreamGuard](../results/2026-09-22/laya-english-streamguard.json) and [PayRecon](../results/2026-09-22/laya-english-payrecon.json) diagnostics are separate from the main benchmark. They show that the 0/24 result depends on checkpoint choice, while neither tested checkpoint provides reliable action selection for this task without further adaptation.
+The configured `typed-decisions` checkpoint was fine-tuned on four workflows that differ from these scenarios. Question IDs alone do not establish checkpoint compatibility or explain the low score. As a diagnostic, the general English checkpoint was run on the exact same evidence with MPS. It chose `WAIT` in all 24 StreamGuard cases (6/24 correct actions, 376 ms median) and scored 4/21 correct actions in PayRecon (409 ms median). Those [StreamGuard](../results/2026-09-22/laya-english-streamguard.json) and [PayRecon](../results/2026-09-22/laya-english-payrecon.json) diagnostics are separate from the main benchmark. They show that the 0/24 result depends on checkpoint choice, while neither tested checkpoint provides reliable action selection for this task without further adaptation.
 
 ## PayRecon — 7 scenarios × 3 seeds = 21 cases per engine
 

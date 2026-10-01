@@ -123,6 +123,13 @@ class RulesAdapter(DecisionAdapter):
                 Action.WAIT,
                 "idempotent-duplicate",
             )
+        elif (facts["complete_verified_source"] and not facts["projection_mismatch"]
+              and facts["local_projection_state"] == facts["processor_lifecycle_state"]):
+            incident_class, action, rule_id = (
+                IncidentClass.HEALTHY_OR_RECOVERING,
+                Action.WAIT,
+                "verified-projection-agrees",
+            )
         else:
             incident_class, action, rule_id = (
                 IncidentClass.UNKNOWN,

@@ -4,7 +4,7 @@
 
 JevOps answers one practical question: when several decision engines see the same operational facts, which engine classifies the incident correctly, recommends an acceptable next action, and stays inside explicit safety constraints?
 
-[Latest benchmark report](docs/benchmark-results-2026-10-02.md) · [Architecture](docs/architecture.md) · [Machine-readable results](results/2026-10-02/)
+[Latest benchmark report](docs/benchmark-results-2026-10-02-corrected.md) · [Architecture](docs/architecture.md) · [Machine-readable results](results/2026-10-02-corrected/)
 
 ## What the project demonstrates
 
@@ -61,29 +61,33 @@ Missing credentials produce an explicit `UNAVAILABLE` result. The benchmark neve
 
 ## Verified results
 
-The latest committed run was produced on **2 October 2026** with one run per case, three seeds per scenario, OpenAI disabled, and Laya on CPU. All 180 provider attempts returned `OK`.
+The corrected run on **2 October 2026** used three repeats per fixture, three seeds, OpenAI disabled, and native Apple MPS for Laya. All **540 primary decisions** and **135 paired Laya CPU controls** returned `OK`.
 
-### StreamGuard — 8 scenarios × 3 seeds
+The previous Laya defaults silently truncated 69 of 90 question inputs. The adapter now verifies complete evidence, instructions, and options before inference. The common PayRecon action definitions were also aligned with the gate's prerequisites. Historical reports are marked as superseded.
 
-| Engine | Raw action accuracy | Incident class accuracy | Unsafe raw recommendations | Median latency |
+### StreamGuard — 8 scenarios × 3 seeds × 3 repeats
+
+| Engine | Raw action accuracy | Class accuracy | Unsafe raw | Median latency |
 | --- | ---: | ---: | ---: | ---: |
-| Rules | 24/24 (100%) | 24/24 (100%) | 0/24 | 0.008 ms |
-| Jev | 18/24 (75.0%) | 21/24 (87.5%) | 0/24 | 490 ms |
-| Gemini 3.5 Flash-Lite | 15/24 (62.5%) | 18/24 (75.0%) | 0/24 | 979 ms |
-| Laya | 7/24 (29.2%) | 15/24 (62.5%) | 0/24 | 693 ms |
+| Rules | 72/72 (100.0%) | 72/72 (100.0%) | 0/72 | 0.006 ms |
+| Jev | 55/72 (76.4%) | 63/72 (87.5%) | 0/72 | 486 ms |
+| Gemini 3.5 Flash-Lite | 49/72 (68.1%) | 52/72 (72.2%) | 0/72 | 950 ms |
+| Laya (MPS) | 45/72 (62.5%) | 18/72 (25.0%) | 0/72 | 519 ms |
 
-### PayRecon — 7 scenarios × 3 seeds
+### PayRecon — 7 scenarios × 3 seed identifiers × 3 repeats
 
-| Engine | Raw action accuracy | Incident class accuracy | Unsafe raw recommendations | Median latency |
+| Engine | Raw action accuracy | Class accuracy | Unsafe raw | Median latency |
 | --- | ---: | ---: | ---: | ---: |
-| Rules | 18/21 (85.7%) | 18/21 (85.7%) | 0/21 | 0.004 ms |
-| Gemini 3.5 Flash-Lite | 17/21 (81.0%) | 20/21 (95.2%) | 3/21 | 971 ms |
-| Jev | 9/21 (42.9%) | 21/21 (100%) | 6/21 | 495 ms |
-| Laya | 3/21 (14.3%) | 5/21 (23.8%) | 9/21 | 700 ms |
+| Rules | 63/63 (100.0%) | 63/63 (100.0%) | 0/63 | 0.005 ms |
+| Gemini 3.5 Flash-Lite | 63/63 (100.0%) | 63/63 (100.0%) | 0/63 | 946 ms |
+| Jev | 54/63 (85.7%) | 63/63 (100.0%) | 0/63 | 478 ms |
+| Laya (MPS) | 18/63 (28.6%) | 27/63 (42.9%) | 12/63 | 461 ms |
 
-Accuracy and unsafe recommendation metrics score the **raw provider output** against private synthetic truth. The deterministic gate changed 34 PayRecon actions; after gating, none of the 180 effective actions matched an oracle-labeled unsafe action. That result covers this finite synthetic matrix and is not a general safety guarantee.
+The gate changed 54 PayRecon actions. None of the 540 effective actions was oracle-labeled unsafe. Raw accuracy and raw unsafe recommendations are scored before the gate. This finite matrix does not establish general safety.
 
-Full methodology, p95 latency, interpretation, and limitations are in the [latest benchmark report](docs/benchmark-results-2026-10-02.md). Raw JSONL and summaries are committed under [`results/2026-10-02/`](results/2026-10-02/).
+With identical inputs and matching decisions, Laya CPU medians were **861 ms** on StreamGuard and **759 ms** on PayRecon, versus **519 ms** and **461 ms** on MPS. Local inference still incurs model computation; hardware, input length, and question count determine latency.
+
+The [corrected report](docs/benchmark-results-2026-10-02-corrected.md) includes raw results, p95, input audits, device controls, the diagnostic progression, and limitations. PayRecon's three seeds change identifiers only; they represent seven distinct operational states.
 
 ## Quick start
 
@@ -104,16 +108,16 @@ make test
 make verify-results
 ```
 
-`make verify-results` recomputes each committed summary from its raw JSONL and verifies that all engines shared one evidence hash per case.
+`make verify-results` regenerates seeded evidence and verifies hashes, oracle scores, safety gates, complete coverage, and raw-to-summary consistency for the latest run and its diagnostics.
 
 ### Run the offline benchmarks
 
 ```bash
 set -a && source .env && set +a
-make benchmark
+make benchmark BENCHMARK_ARGS="--runs 3 --laya-device mps --cpu-comparison"
 ```
 
-Outputs are written to `artifacts/`, which is ignored by Git. Each benchmark writes raw JSONL and a sibling `.summary.json` file.
+Use `--laya-device cpu` on a CPU host or `cuda` on a compatible GPU. Outputs go to `artifacts/verified-benchmarks/`, which is ignored by Git. The script runs both domains, warms Laya, audits input fit, and writes raw JSONL, summaries, and runtime metadata.
 
 ### Run the live StreamGuard pipeline
 
@@ -164,7 +168,7 @@ Run one case directly:
 | `OPENAI_API_KEY` | Credential for the optional OpenAI adapter | Empty |
 | `DECISION_EVERY_N_SNAPSHOTS` | Live provider-call interval | `5` |
 
-Laya downloads its model on first use and reuses it for the process lifetime. Local Laya latency excludes model loading. Jev and Gemini latency includes the API round trip, so the latency scopes should be compared with that distinction in mind.
+Laya downloads its model on first use and reuses it for the process lifetime. The adapter verifies a 1,024-token sequence and 384-token head budget without dropping evidence or option text. Oversized requests are rejected explicitly. Its latency includes request preparation and local inference; model loading is recorded separately. Jev and Gemini include the API round trip. Docker uses the locked dependencies and CPU PyTorch; native macOS can use MPS.
 
 ## Repository map
 
@@ -183,7 +187,7 @@ tests/                  contract, safety, adapter, and benchmark tests
 
 ## Known limits
 
-- The datasets are synthetic and small: three seeds and one request per case in the published run.
+- The datasets are synthetic and small: three repeats per fixture; 24 distinct StreamGuard and seven distinct PayRecon operational states. There is no independent production test set.
 - Rules are written against the synthetic evidence contract and should not be interpreted as production performance.
 - Laya's general checkpoint is technically functional but has low task accuracy, especially on PayRecon.
 - Kafka and Flink run as single-node local services with no authentication or high availability.

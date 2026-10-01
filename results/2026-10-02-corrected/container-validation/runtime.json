@@ -1,0 +1,18 @@
+{
+  "scope": "Docker Laya inference smoke: all 15 scenarios, one seed, no API calls; not a latency comparison",
+  "total_decisions": 15,
+  "ok": 15,
+  "input_truncated": false,
+  "device": "cpu",
+  "torch_threads": 4,
+  "python": "3.12.14",
+  "platform": "Linux aarch64",
+  "packages": {
+    "laya": "0.3.4",
+    "torch": "2.14.0+cpu",
+    "transformers": "5.17.0",
+    "google-genai": "2.24.0",
+    "typesafe-sdk": "0.7.0"
+  },
+  "checkpoint_revision": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851"
+}

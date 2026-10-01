@@ -1,0 +1,19 @@
+[
+  {
+    "action_accuracy": 0.285714,
+    "engine": "laya-cpu",
+    "incident_class_accuracy": 0.428571,
+    "latency_kind": "local_inference",
+    "median_latency_ms": 758.97,
+    "p95_latency_ms": 957.501,
+    "provider_failure_count": 0,
+    "provider_timeout_count": 0,
+    "provider_unavailable_count": 0,
+    "total_attempts": 63,
+    "total_evaluated_decisions": 63,
+    "unnecessary_escalation_count": 0,
+    "unnecessary_escalation_rate": 0.0,
+    "unsafe_recommendation_count": 12,
+    "unsafe_recommendation_rate": 0.190476
+  }
+]

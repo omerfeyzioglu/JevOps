@@ -20,6 +20,6 @@
     "latency_scope": "warm local inference"
   },
   "remote_latency_scope": "API end to end",
-  "python": "3.13.13",
+  "python": "3.12.13",
   "platform": "Darwin arm64"
 }

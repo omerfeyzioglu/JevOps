@@ -203,6 +203,10 @@ class StreamGuardDecisionTests(unittest.TestCase):
     def test_laya_reuses_one_local_model_and_records_typed_answers(self) -> None:
         evidence = run_episode(Scenario.TRAFFIC_SPIKE, 101).evidence
         agent = MagicMock()
+        agent.cfg = {"max_len": 1024, "head_max_len": 384}
+        agent.device = "cpu"
+        agent.tok.mask_token = "[MASK]"
+        agent.tok.side_effect = lambda text, **kwargs: {"input_ids": text.split()}
         agent.predict.return_value = {
             "model": "laya-rl-agent",
             "answers": {
@@ -239,10 +243,36 @@ class StreamGuardDecisionTests(unittest.TestCase):
         self.assertEqual(first_result.metadata["usage"]["input_tokens"], 42)
         self.assertEqual(second_result.status, ProviderStatus.OK)
         state, questions = agent.predict.call_args.args
-        self.assertEqual(state, evidence.model_state())
+        self.assertEqual(json.loads(state), evidence.model_state())
         self.assertNotIn("scenario", json.dumps(state).lower())
         self.assertEqual(questions["incident_class"]["type"], "choice")
         self.assertEqual(questions["recommended_action"]["type"], "choice")
+        self.assertFalse(first_result.metadata["input_truncated"])
+        self.assertEqual(first_result.metadata["model_device"], "cpu")
+
+    def test_laya_rejects_truncated_evidence_before_inference(self) -> None:
+        evidence = run_episode(Scenario.TRAFFIC_SPIKE, 101).evidence
+        agent = MagicMock()
+        agent.cfg = {"max_len": 32, "head_max_len": 384}
+        agent.tok.mask_token = "[MASK]"
+        agent.tok.side_effect = lambda text, **kwargs: {"input_ids": text.split()}
+        with patch.object(LayaAdapter, "_get_model", return_value=agent):
+            result = LayaAdapter().decide(evidence)
+        self.assertEqual(result.status, ProviderStatus.INVALID_OUTPUT)
+        self.assertIn("evidence would be truncated", result.error)
+        agent.predict.assert_not_called()
+
+    def test_laya_rejects_truncated_options_before_inference(self) -> None:
+        evidence = run_episode(Scenario.TRAFFIC_SPIKE, 101).evidence
+        agent = MagicMock()
+        agent.cfg = {"max_len": 1024, "head_max_len": 16}
+        agent.tok.mask_token = "[MASK]"
+        agent.tok.side_effect = lambda text, **kwargs: {"input_ids": text.split()}
+        with patch.object(LayaAdapter, "_get_model", return_value=agent):
+            result = LayaAdapter().decide(evidence)
+        self.assertEqual(result.status, ProviderStatus.INVALID_OUTPUT)
+        self.assertIn("question head would be truncated", result.error)
+        agent.predict.assert_not_called()
 
     def test_gpt_and_gemini_use_the_same_prompt_schema_and_record_usage(self) -> None:
         evidence = run_episode(Scenario.TRAFFIC_SPIKE, 101).evidence
@@ -473,6 +503,12 @@ class PayReconTests(unittest.TestCase):
         self.assertEqual((missing.incident_class, missing.recommended_action), (IncidentClass.DELIVERY_GAP, Action.REPLAY))
         self.assertEqual((mismatch.incident_class, mismatch.recommended_action), (IncidentClass.PROJECTION_MISMATCH, Action.RECONCILE))
         self.assertEqual((conflict.incident_class, conflict.recommended_action), (IncidentClass.INTEGRITY_CONFLICT, Action.ESCALATE))
+
+    def test_payrecon_healthy_verified_projection_does_not_escalate(self) -> None:
+        evidence = run_payrecon_episode(PayReconScenario.NORMAL, 101).evidence
+        result = RulesAdapter().decide(evidence)
+        self.assertEqual(result.incident_class, IncidentClass.HEALTHY_OR_RECOVERING)
+        self.assertEqual(result.recommended_action, Action.WAIT)
 
     def test_payrecon_blocks_replay_without_a_known_gap(self) -> None:
         episode = run_payrecon_episode(PayReconScenario.INTEGRITY_CONFLICT, 603)

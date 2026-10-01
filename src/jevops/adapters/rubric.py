@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from jevops.contracts import Action, IncidentClass
 
-RUBRIC_VERSION = "streamguard-v1"
+RUBRIC_VERSION = "jevops-policy-v2"
 
 INCIDENT_CRITERIA = {
     IncidentClass.HEALTHY_OR_RECOVERING.value: (
@@ -57,9 +57,9 @@ PAYRECON_INCIDENT_CRITERIA = {
 }
 
 PAYRECON_ACTION_CRITERIA = {
-    Action.WAIT.value: "Recheck inside the bounded grace period; do not extend a hard exception deadline.",
-    Action.REPLAY.value: "Redeliver a known retained lifecycle event to the idempotent local projection only.",
-    Action.RECONCILE.value: "Deterministically rebuild or compare the disposable local projection from verified complete source facts.",
+    Action.WAIT.value: "Monitor healthy or deduplicated state, or pending delivery inside grace; require an open deadline and unexpired grace period.",
+    Action.REPLAY.value: "Redeliver only a known missing retained event with no integrity conflict to the idempotent local projection; never reissue a payment.",
+    Action.RECONCILE.value: "Repair only a verified projection mismatch from complete source facts; require a disposable projection, zero pending prerequisites, and no integrity conflict.",
     Action.ESCALATE.value: "Create a review ticket when source facts conflict, are incomplete, or automated repair is unsafe.",
 }
 

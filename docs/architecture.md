@@ -64,7 +64,7 @@ The offline StreamGuard simulator and PayRecon state machine create the same evi
 5. scores the raw result against evaluator-only truth; and
 6. writes auditable JSONL plus an engine summary.
 
-Provider calls are sequential. `--runs N` repeats requests without application-level response caching.
+Provider calls are sequential. `--runs N` repeats requests without application-level response caching. The verified benchmark script runs three repeats by default, rotates provider order deterministically, and warms Laya with two excluded calls per device. Repeats measure repeated calls on the same fixtures; they do not add independent scenarios.
 
 ## Decision engines
 
@@ -72,11 +72,11 @@ All adapters return one `DecisionResult` contract: engine identity, provider sta
 
 - **Rules** are local and deterministic.
 - **Jev** uses typed `Choice` questions through the TypeSafe SDK.
-- **Laya** performs local choice inference. The default is the repository-root general English checkpoint; the model object is reused within the process.
+- **Laya** performs local choice inference. The default is the repository-root general English checkpoint; the model object is reused within the process. It receives a lossless compact JSON serialization of the same evidence and unchanged rubric. The adapter sets a 1,024-token sequence budget and 384-token question-head budget, checks every option, instruction, and state against the SDK's limits, and rejects requests that would be truncated. Actual device and per-question token counts are audited.
 - **Gemini** uses a strict JSON response schema and temperature zero.
 - **OpenAI** uses the same prompt and JSON schema as Gemini when explicitly enabled.
 
-Laya timing covers warm local inference and excludes checkpoint loading. Remote timing covers the API round trip. These latency scopes are stored in each result.
+Laya timing covers the adapter call, including serialization, token-budget validation, and local inference; checkpoint loading is recorded separately. The verified run excludes two warmup calls. Remote timing includes SDK client construction and the API round trip. These latency scopes are stored in each result. Device selection is automatic unless `LAYA_DEVICE` is set; native macOS can use MPS, while the Linux Compose image uses CPU PyTorch.
 
 ## Safety gates
 
@@ -116,6 +116,7 @@ Live decision records omit evaluator truth and keep the evidence hash, version, 
 - Missing provider credentials: `UNAVAILABLE`
 - Provider deadline: `TIMEOUT`
 - Invalid structured response: `INVALID_OUTPUT`
+- Laya request exceeding its token budget: `INVALID_OUTPUT`, with no inference performed
 - Other provider or local model error: `SERVICE_ERROR`
 - Non-`OK` decisions never produce an effective action
 - Kafka offsets are committed only after decisions are published successfully

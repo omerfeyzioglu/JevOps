@@ -1,0 +1,214 @@
+{
+  "laya": [
+    {
+      "attempts": 1,
+      "elapsed_ms": 792.2373750188854,
+      "engine": "laya",
+      "engine_version": "laya-complete-evidence-v3",
+      "error": null,
+      "incident_class": "MIXED",
+      "metadata": {
+        "action_confidence": 0.04,
+        "action_probabilities": {
+          "ESCALATE": 0.0905,
+          "PAUSE": 0.22,
+          "REPLAY": 0.1556,
+          "RETRY": 0.2739,
+          "WAIT": 0.2599
+        },
+        "checkpoint": "convaiinnovations/laya",
+        "head_max_tokens": 384,
+        "incident_confidence": 0.1758,
+        "incident_probabilities": {
+          "CONSUMER_UNAVAILABLE": 0.0704,
+          "DUPLICATE_BURST": 0.0428,
+          "HEALTHY_OR_RECOVERING": 0.1545,
+          "LOAD_SURGE": 0.0284,
+          "MIXED": 0.3835,
+          "NETWORK_DEGRADED": 0.0702,
+          "PARTITION_SKEW": 0.0297,
+          "SCHEMA_REJECT": 0.0518,
+          "SINK_DEGRADED": 0.1416,
+          "UNKNOWN": 0.0272
+        },
+        "input_serialization": "lossless-compact-json-v1",
+        "input_truncated": false,
+        "latency_kind": "local_inference",
+        "local_inference_ms": 792.2373750188854,
+        "max_sequence_tokens": 1024,
+        "model_device": "mps",
+        "model_load_or_lookup_ms": 25855.782291997457,
+        "request_tokens_by_question": {
+          "incident_class": 595,
+          "recommended_action": 505
+        },
+        "rubric_version": "jevops-policy-v2",
+        "usage": {
+          "input_tokens": 1100,
+          "output_tokens": 0
+        }
+      },
+      "provider_model": "laya-rl-agent",
+      "recommended_action": "RETRY",
+      "status": "OK"
+    },
+    {
+      "attempts": 1,
+      "elapsed_ms": 448.8579159951769,
+      "engine": "laya",
+      "engine_version": "laya-complete-evidence-v3",
+      "error": null,
+      "incident_class": "MIXED",
+      "metadata": {
+        "action_confidence": 0.04,
+        "action_probabilities": {
+          "ESCALATE": 0.0905,
+          "PAUSE": 0.22,
+          "REPLAY": 0.1556,
+          "RETRY": 0.2739,
+          "WAIT": 0.2599
+        },
+        "checkpoint": "convaiinnovations/laya",
+        "head_max_tokens": 384,
+        "incident_confidence": 0.1758,
+        "incident_probabilities": {
+          "CONSUMER_UNAVAILABLE": 0.0704,
+          "DUPLICATE_BURST": 0.0428,
+          "HEALTHY_OR_RECOVERING": 0.1545,
+          "LOAD_SURGE": 0.0284,
+          "MIXED": 0.3835,
+          "NETWORK_DEGRADED": 0.0702,
+          "PARTITION_SKEW": 0.0297,
+          "SCHEMA_REJECT": 0.0518,
+          "SINK_DEGRADED": 0.1416,
+          "UNKNOWN": 0.0272
+        },
+        "input_serialization": "lossless-compact-json-v1",
+        "input_truncated": false,
+        "latency_kind": "local_inference",
+        "local_inference_ms": 448.8579159951769,
+        "max_sequence_tokens": 1024,
+        "model_device": "mps",
+        "model_load_or_lookup_ms": 0.002874992787837982,
+        "request_tokens_by_question": {
+          "incident_class": 595,
+          "recommended_action": 505
+        },
+        "rubric_version": "jevops-policy-v2",
+        "usage": {
+          "input_tokens": 1100,
+          "output_tokens": 0
+        }
+      },
+      "provider_model": "laya-rl-agent",
+      "recommended_action": "RETRY",
+      "status": "OK"
+    }
+  ],
+  "laya-cpu": [
+    {
+      "attempts": 1,
+      "elapsed_ms": 880.856333009433,
+      "engine": "laya-cpu",
+      "engine_version": "laya-complete-evidence-v3",
+      "error": null,
+      "incident_class": "MIXED",
+      "metadata": {
+        "action_confidence": 0.04,
+        "action_probabilities": {
+          "ESCALATE": 0.0905,
+          "PAUSE": 0.22,
+          "REPLAY": 0.1556,
+          "RETRY": 0.2739,
+          "WAIT": 0.2599
+        },
+        "checkpoint": "convaiinnovations/laya",
+        "head_max_tokens": 384,
+        "incident_confidence": 0.1758,
+        "incident_probabilities": {
+          "CONSUMER_UNAVAILABLE": 0.0704,
+          "DUPLICATE_BURST": 0.0428,
+          "HEALTHY_OR_RECOVERING": 0.1545,
+          "LOAD_SURGE": 0.0284,
+          "MIXED": 0.3835,
+          "NETWORK_DEGRADED": 0.0702,
+          "PARTITION_SKEW": 0.0297,
+          "SCHEMA_REJECT": 0.0518,
+          "SINK_DEGRADED": 0.1416,
+          "UNKNOWN": 0.0272
+        },
+        "input_serialization": "lossless-compact-json-v1",
+        "input_truncated": false,
+        "latency_kind": "local_inference",
+        "local_inference_ms": 880.856333009433,
+        "max_sequence_tokens": 1024,
+        "model_device": "cpu",
+        "model_load_or_lookup_ms": 23492.45795898605,
+        "request_tokens_by_question": {
+          "incident_class": 595,
+          "recommended_action": 505
+        },
+        "rubric_version": "jevops-policy-v2",
+        "usage": {
+          "input_tokens": 1100,
+          "output_tokens": 0
+        }
+      },
+      "provider_model": "laya-rl-agent",
+      "recommended_action": "RETRY",
+      "status": "OK"
+    },
+    {
+      "attempts": 1,
+      "elapsed_ms": 835.422624979401,
+      "engine": "laya-cpu",
+      "engine_version": "laya-complete-evidence-v3",
+      "error": null,
+      "incident_class": "MIXED",
+      "metadata": {
+        "action_confidence": 0.04,
+        "action_probabilities": {
+          "ESCALATE": 0.0905,
+          "PAUSE": 0.22,
+          "REPLAY": 0.1556,
+          "RETRY": 0.2739,
+          "WAIT": 0.2599
+        },
+        "checkpoint": "convaiinnovations/laya",
+        "head_max_tokens": 384,
+        "incident_confidence": 0.1758,
+        "incident_probabilities": {
+          "CONSUMER_UNAVAILABLE": 0.0704,
+          "DUPLICATE_BURST": 0.0428,
+          "HEALTHY_OR_RECOVERING": 0.1545,
+          "LOAD_SURGE": 0.0284,
+          "MIXED": 0.3835,
+          "NETWORK_DEGRADED": 0.0702,
+          "PARTITION_SKEW": 0.0297,
+          "SCHEMA_REJECT": 0.0518,
+          "SINK_DEGRADED": 0.1416,
+          "UNKNOWN": 0.0272
+        },
+        "input_serialization": "lossless-compact-json-v1",
+        "input_truncated": false,
+        "latency_kind": "local_inference",
+        "local_inference_ms": 835.422624979401,
+        "max_sequence_tokens": 1024,
+        "model_device": "cpu",
+        "model_load_or_lookup_ms": 0.002167013008147478,
+        "request_tokens_by_question": {
+          "incident_class": 595,
+          "recommended_action": 505
+        },
+        "rubric_version": "jevops-policy-v2",
+        "usage": {
+          "input_tokens": 1100,
+          "output_tokens": 0
+        }
+      },
+      "provider_model": "laya-rl-agent",
+      "recommended_action": "RETRY",
+      "status": "OK"
+    }
+  ]
+}

@@ -1,4 +1,6 @@
-# Benchmark results — 2 October 2026
+# Benchmark results — 2 October 2026 (superseded)
+
+This historical run used Laya defaults that silently truncated evidence and option descriptions. Its Laya results are measurements of that integration, not a valid full-evidence comparison. Use the [corrected report](benchmark-results-2026-10-02-corrected.md) for current comparisons.
 
 ## Executive summary
 
@@ -21,7 +23,7 @@ The safety gate changed 34 PayRecon recommendations. No effective action in the 
 | Laya device | CPU |
 | Laya latency scope | Warm local inference; model loading excluded |
 | Remote latency scope | API end to end |
-| Python | 3.13.13 |
+| Python | 3.12.13 |
 | Host | macOS arm64 |
 
 The exact configuration is recorded in [run-metadata.json](../results/2026-10-02/run-metadata.json). Raw records and generated summaries are committed beside it:

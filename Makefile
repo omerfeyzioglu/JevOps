@@ -1,4 +1,5 @@
 PYTHON ?= .venv/bin/python
+BENCHMARK_ARGS ?=
 
 .PHONY: setup test verify-results smoke benchmark up down
 
@@ -8,7 +9,7 @@ setup:
 	$(PYTHON) -m pip install --no-deps .
 
 test:
-	$(PYTHON) -m unittest discover -s tests -q
+	PYTHONPATH=src $(PYTHON) -m unittest discover -s tests -q
 
 verify-results:
 	PYTHONPATH=src $(PYTHON) scripts/verify_results.py
@@ -17,8 +18,7 @@ smoke:
 	$(PYTHON) -m jevops smoke-suite
 
 benchmark:
-	$(PYTHON) -m jevops benchmark --runs 1 --output artifacts/benchmark.jsonl
-	$(PYTHON) -m jevops payrecon-benchmark --runs 1 --output artifacts/payrecon-benchmark.jsonl
+	PYTHONPATH=src $(PYTHON) scripts/run_verified_benchmarks.py $(BENCHMARK_ARGS)
 
 up:
 	docker compose up --build -d

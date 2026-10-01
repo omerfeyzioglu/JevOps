@@ -1,0 +1,51 @@
+{
+  "cpu_comparison": true,
+  "date": "2026-10-02",
+  "engines": [
+    "rules",
+    "jev",
+    "laya",
+    "gemini-3.5-flash-lite"
+  ],
+  "git_base_commit": "8256dd8b641f73addc4add57fe0f83565737bf49",
+  "laya": {
+    "device": "mps",
+    "encoder": "answerdotai/ModernBERT-large",
+    "head_max_len": 384,
+    "latency_scope": "warm adapter call including serialization and input validation, excluding model loading",
+    "max_len": 1024,
+    "model": "convaiinnovations/laya",
+    "requested_device": "mps",
+    "revision": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851",
+    "subfolder": null
+  },
+  "openai_enabled": false,
+  "packages": {
+    "google-genai": "2.24.0",
+    "laya": "0.3.4",
+    "torch": "2.14.0",
+    "transformers": "5.17.0",
+    "typesafe-sdk": "0.7.0"
+  },
+  "platform": "Darwin arm64",
+  "provider_order": "deterministic cyclic rotation",
+  "python": "3.12.13",
+  "remote_latency_scope": "API end to end including SDK client construction",
+  "runs_per_case": 3,
+  "seeds": [
+    101,
+    202,
+    303
+  ],
+  "source_sha256": {
+    "scripts/run_verified_benchmarks.py": "394a7a7eeb6f0964c4d75da61ef8711083fbd91da8d0aac9fe39663249249a0e",
+    "src/jevops/adapters/laya.py": "441e9d919ad58474e4dd2c8bb89b17814dc2619070d1f496088d135e3d618b5d",
+    "src/jevops/adapters/rubric.py": "a9f80930f7f787c03c3e6d9911152084796328f25fc2845e2b507c2ae0af66fe",
+    "src/jevops/adapters/rules.py": "9ee842ba40b33c1ab57409772eecd7680f83c7d6a3142d51fc106220d48c034f",
+    "src/jevops/benchmark/oracle.py": "a3799eccb7878622cceb6efaea8ba67576ad9de31605985e8dc8b71ca2152b5c",
+    "src/jevops/benchmark/runner.py": "7fe0f9d0d980c03b0762e5354bc6eb15a6aaad9ea67b9dc500f5401c75cc9a6b"
+  },
+  "stage": "input guard and MPS correction; original rubric and rules",
+  "torch_threads": 4,
+  "warmup_calls_per_device": 2
+}
